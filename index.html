@@ -258,16 +258,25 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <div class="method-row">
       <div class="mpill active" id="mAuto" onclick="setMethod('random')">🎲 สุ่ม</div>
       <div class="mpill" id="mManual" onclick="setMethod('manual')">✏ เลือกเอง</div>
+      <div class="mpill" id="mDraw" onclick="setMethod('draw')">📄 จองใบสุ่ม</div>
     </div>
   </div>
   <div class="sbox" id="secSets" style="display:none">
     <div class="stitle">🎫 จำนวนชุด <span class="badge">สูงสุด 5</span></div>
-    <div class="sets-row">
-      <button class="sets-btn" onclick="chgSets(-1)">-</button>
-      <div class="sets-num" id="setsNum">1</div>
-      <div class="sets-unit">ชุด</div>
-      <div class="sets-price" id="setsPrice">บาท 0</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--cream);border:2px solid var(--pink3);border-radius:var(--r);padding:10px 13px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-family:Itim,cursive;font-size:22px;color:var(--pink)" id="setsNum">1</div>
+        <div style="font-size:12px;color:var(--text2)">ชุด</div>
+      </div>
+      <div style="font-family:Itim,cursive;font-size:18px;color:var(--lav)" id="setsPrice">บาท 0</div>
     </div>
+    <button id="btnAddSet" onclick="addSet()" style="width:100%;margin-top:10px;padding:11px;background:linear-gradient(135deg,var(--lav),var(--pink));border:none;border-radius:var(--r3);color:#fff;font-family:Mitr,sans-serif;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 3px 12px var(--shadow2);display:flex;align-items:center;justify-content:center;gap:6px">
+      ➕ เพิ่มชุดใหม่
+    </button>
+  </div>
+  <div class="sbox" id="secImgs" style="display:none">
+    <div class="stitle">📄 เลือกใบสุ่ม <span class="badge" id="imgBadge">Drive</span></div>
+    <div id="imgArea"><div style="text-align:center;padding:24px;color:var(--text2);font-size:13px">⏳ โหลด...</div></div>
   </div>
   <div class="sbox" id="secPP" style="display:none">
     <div class="stitle">⚡ Power Play</div>
@@ -408,7 +417,7 @@ function pickGame(key) {
   document.querySelectorAll('.game-card').forEach(function(c,i){
     c.classList.toggle('sel', Object.keys(GAMES)[i]===key);
   });
-  var hide=['secDate','secOnline','secMethod','secSets','secPP','secAllSets','secInfo','secSubmit'];
+  var hide=['secDate','secOnline','secMethod','secSets','secPP','secAllSets','secImgs','secInfo','secSubmit'];
   hide.forEach(function(id){ document.getElementById(id).style.display='none'; });
   if (g.onlineOnly) { document.getElementById('secOnline').style.display='block'; return; }
   document.getElementById('secDate').style.display='block';
@@ -417,6 +426,8 @@ function pickGame(key) {
   document.getElementById('secMethod').style.display='block';
   setMethod('random', true);
   updateSets();
+  var noDrawGames=['txlotto','allornothing'];
+  if(document.getElementById('mDraw')) document.getElementById('mDraw').style.display=noDrawGames.indexOf(key)>-1?'none':'';
   ['secSets','secAllSets','secInfo','secSubmit'].forEach(function(id){ document.getElementById(id).style.display='block'; });
   if (g.hasPP) {
     document.getElementById('secPP').style.display='block';
@@ -452,6 +463,10 @@ function setMethod(m, silent) {
   S.method=m;
   document.getElementById('mAuto').classList.toggle('active',m==='random');
   document.getElementById('mManual').classList.toggle('active',m==='manual');
+  if(document.getElementById('mDraw')) document.getElementById('mDraw').classList.toggle('active',m==='draw');
+  document.getElementById('secAllSets').style.display=m==='draw'?'none':'block';
+  document.getElementById('secImgs').style.display=m==='draw'?'block':'none';
+  if(m==='draw'){loadImgs();return;}
   S.setsData=[];
   for (var i=0;i<S.sets;i++) S.setsData.push({mainSel:[],bonusSel:[]});
   if (m==='random') {
@@ -555,6 +570,30 @@ function togN(si,n,isBonus) {
   renderAllSets();
 }
 
+function addSet(){
+  if(!S.game) return;
+  if(S.sets>=5){toast('สูงสุด 5 ชุด','info');return;}
+  S.sets++;
+  var g=GAMES[S.game];
+  var newSet={mainSel:[],bonusSel:[]};
+  if(S.method==='random'){
+    newSet.mainSel=rnd(g.mainMax,g.mainCount);
+    newSet.bonusSel=g.bonusCount>0?rnd(g.bonusMax,g.bonusCount):[];
+  }
+  S.setsData.push(newSet);
+  updateSets(); renderAllSets();
+}
+
+function loadImgs(){
+  if(!S.game) return;
+  var area=document.getElementById('imgArea');
+  area.innerHTML='<div style="text-align:center;padding:24px;color:var(--text2);font-size:13px">⏳ โหลดรูปจาก Drive...</div>';
+  // Note: Drive images stored in Supabase storage bucket per game
+  // For now show empty state - admin uploads via Supabase dashboard
+  area.innerHTML='<div class="empty">📂 ยังไม่มีรูปใบสุ่ม<br><small style="color:var(--text3)">Admin upload รูปใน Supabase Storage</small></div>';
+  document.getElementById('imgBadge').textContent='0';
+}
+
 function rnd(max,n){
   var p=[];for(var i=1;i<=max;i++)p.push(i);
   for(var i=p.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=p[i];p[i]=p[j];p[j]=t;}
@@ -613,7 +652,7 @@ function shareLine(){window.open('https://line.me/R/msg/text/?'+encodeURICompone
 function resetForm(){
   S.game=null;S.setsData=[{mainSel:[],bonusSel:[]}];S.powerPlay=false;S.sets=1;S.drawDate='';
   document.querySelectorAll('.game-card').forEach(function(c){c.classList.remove('sel');});
-  ['secDate','secOnline','secMethod','secSets','secPP','secAllSets','secInfo','secSubmit'].forEach(function(id){document.getElementById(id).style.display='none';});
+  ['secDate','secOnline','secMethod','secSets','secPP','secAllSets','secImgs','secInfo','secSubmit'].forEach(function(id){document.getElementById(id).style.display='none';});
   document.getElementById('fName').value='';document.getElementById('fPhone').value='';document.getElementById('fNote').value='';
 }
 
