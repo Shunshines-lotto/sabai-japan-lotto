@@ -520,46 +520,98 @@ function togglePP() {
 // ── RENDER ALL SETS ─────────────────────────────
 function renderAllSets() {
   if (!S.game) return;
-  var g=GAMES[S.game], wrap=document.getElementById('secAllSets'), html='';
-  for (var i=0;i<S.sets;i++) {
-    var sd=S.setsData[i];
-    html+='<div class="sbox" style="margin-bottom:10px">';
-    html+='<div class="stitle">🎫 ชุดที่ '+(i+1);
-    if (S.method==='random')
-      html+=' <button onclick="reRandSet('+i+')" style="margin-left:auto;background:linear-gradient(135deg,var(--lav),var(--pink));border:none;border-radius:var(--r3);color:#fff;font-family:Mitr,sans-serif;font-size:11px;padding:3px 12px;cursor:pointer">🎲 สุ่มใหม่</button>';
-    html+='</div>';
-    if (S.method==='random') {
-      html+='<div class="ball-display" id="setBalls'+i+'">';
-      sd.mainSel.slice().sort(function(a,b){return a-b;}).forEach(function(n){html+='<div class="ball main">'+(n<10?'0':'')+n+'</div>';});
-      if (sd.bonusSel.length){html+='<div style="color:var(--pink2);font-size:16px;margin:0 2px">+</div>';sd.bonusSel.forEach(function(n){html+='<div class="ball bonus">'+(n<10?'0':'')+n+'</div>';});}
-      html+='</div>';
-    } else {
-      html+='<div style="font-size:12px;color:var(--text2);margin-bottom:7px">เลือก <b>'+g.mainCount+'</b> เลขหลัก</div>';
-      html+='<div class="num-grid">';
-      for (var n=1;n<=g.mainMax;n++){
-        var sel=sd.mainSel.indexOf(n)>-1, dim=!sel&&sd.mainSel.length>=g.mainCount;
-        html+='<div class="nb'+(sel?' sel':'')+(dim?' dimmed':'')+'\" onclick="togN('+i+','+n+',false)">'+(n<10?'0':'')+n+'</div>';
-      }
-      html+='</div>';
-      if (g.bonusCount>0){
-        html+='<div class="divider" style="margin:8px 0"><span>'+g.bonusLabel+'</span></div>';
-        html+='<div class="num-grid">';
-        for (var n=1;n<=g.bonusMax;n++){
-          var sel=sd.bonusSel.indexOf(n)>-1, dim=!sel&&sd.bonusSel.length>=g.bonusCount;
-          html+='<div class="nb'+(sel?' bsel':'')+(dim?' dimmed':'')+'\" onclick="togN('+i+','+n+',true)">'+(n<10?'0':'')+n+'</div>';
-        }
-        html+='</div>';
-      }
-      html+='<div class="ball-display" style="margin-top:8px">';
-      if (sd.mainSel.length) {
-        sd.mainSel.slice().sort(function(a,b){return a-b;}).forEach(function(n){html+='<div class="ball main">'+(n<10?'0':'')+n+'</div>';});
-        if (sd.bonusSel.length){html+='<div style="color:var(--pink2);font-size:16px;margin:0 2px">+</div>';sd.bonusSel.forEach(function(n){html+='<div class="ball bonus">'+(n<10?'0':'')+n+'</div>';});}
-      } else { html+='<span style="color:var(--text3);font-size:12px">-</span>'; }
-      html+='</div>';
+  var g = GAMES[S.game];
+  var wrap = document.getElementById('secAllSets');
+  var html = '';
+  for (var i = 0; i < S.sets; i++) {
+    var sd = S.setsData[i];
+    if (!sd.mode) sd.mode = 'random';
+    var isRand = sd.mode === 'random';
+    if (isRand && !sd.mainSel.length) {
+      sd.mainSel = rnd(g.mainMax, g.mainCount);
+      sd.bonusSel = g.bonusCount > 0 ? rnd(g.bonusMax, g.bonusCount) : [];
     }
-    html+='</div>';
+
+    html += '<div class="sbox" style="margin-bottom:10px">';
+
+    html += '<div style="display:flex;align-items:center;margin-bottom:10px">';
+    html += '<div class="stitle" style="margin-bottom:0">🎫 ชุดที่ ' + (i + 1) + '</div>';
+    if (i > 0) {
+      html += '<button onclick="removeSet(' + i + ')" style="margin-left:auto;background:#ffe4e6;border:1px solid #ffb3c6;border-radius:50px;color:#be123c;font-family:Mitr,sans-serif;font-size:11px;padding:4px 12px;cursor:pointer">✕ ลบ</button>';
+    }
+    html += '</div>';
+
+    html += '<div style="display:flex;gap:7px;margin-bottom:10px">';
+    html += '<div class="mpill' + (isRand ? ' active' : '') + '" style="flex:1;cursor:pointer" onclick="setSetMode(' + i + ',\'random\')">🎲 สุ่ม</div>';
+    html += '<div class="mpill' + (!isRand ? ' active' : '') + '" style="flex:1;cursor:pointer" onclick="setSetMode(' + i + ',\'manual\')">✏ เลือกเอง</div>';
+    html += '</div>';
+
+    if (isRand) {
+      html += '<div class="ball-display">';
+      sd.mainSel.slice().sort(function(a,b){return a-b;}).forEach(function(n){
+        html += '<div class="ball main">' + (n < 10 ? '0' : '') + n + '</div>';
+      });
+      if (sd.bonusSel.length) {
+        html += '<div style="color:var(--pink2);font-size:16px;margin:0 2px">+</div>';
+        sd.bonusSel.forEach(function(n){
+          html += '<div class="ball bonus">' + (n < 10 ? '0' : '') + n + '</div>';
+        });
+      }
+      html += '</div>';
+      html += '<button onclick="reRandSet(' + i + ')" style="width:100%;margin-top:8px;padding:9px;background:linear-gradient(135deg,var(--lav),var(--pink));border:none;border-radius:50px;color:#fff;font-family:Mitr,sans-serif;font-size:12px;font-weight:600;cursor:pointer">🎲 สุ่มใหม่</button>';
+    } else {
+      html += '<div style="font-size:12px;color:var(--text2);margin-bottom:7px">เลือก <b>' + g.mainCount + '</b> เลขหลัก</div>';
+      html += '<div class="num-grid">';
+      for (var n = 1; n <= g.mainMax; n++) {
+        var sel = sd.mainSel.indexOf(n) > -1;
+        var dim = !sel && sd.mainSel.length >= g.mainCount;
+        html += '<div class="nb' + (sel ? ' sel' : '') + (dim ? ' dimmed' : '') + '" onclick="togN(' + i + ',' + n + ',false)">' + (n < 10 ? '0' : '') + n + '</div>';
+      }
+      html += '</div>';
+      if (g.bonusCount > 0) {
+        html += '<div class="divider" style="margin:8px 0"><span>' + g.bonusLabel + '</span></div>';
+        html += '<div class="num-grid">';
+        for (var n = 1; n <= g.bonusMax; n++) {
+          var sel = sd.bonusSel.indexOf(n) > -1;
+          var dim = !sel && sd.bonusSel.length >= g.bonusCount;
+          html += '<div class="nb' + (sel ? ' bsel' : '') + (dim ? ' dimmed' : '') + '" onclick="togN(' + i + ',' + n + ',true)">' + (n < 10 ? '0' : '') + n + '</div>';
+        }
+        html += '</div>';
+      }
+      html += '<div class="ball-display" style="margin-top:8px">';
+      if (sd.mainSel.length) {
+        sd.mainSel.slice().sort(function(a,b){return a-b;}).forEach(function(n){
+          html += '<div class="ball main">' + (n < 10 ? '0' : '') + n + '</div>';
+        });
+        if (sd.bonusSel.length) {
+          html += '<div style="color:var(--pink2);font-size:16px;margin:0 2px">+</div>';
+          sd.bonusSel.forEach(function(n){
+            html += '<div class="ball bonus">' + (n < 10 ? '0' : '') + n + '</div>';
+          });
+        }
+      } else {
+        html += '<span style="color:var(--text3);font-size:12px">-</span>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
   }
-  wrap.innerHTML=html;
+  wrap.innerHTML = html;
+}
+
+function setSetMode(i, mode) {
+  S.setsData[i].mode = mode;
+  S.setsData[i].mainSel = [];
+  S.setsData[i].bonusSel = [];
+  renderAllSets();
+}
+
+function removeSet(i) {
+  if (S.sets <= 1) return;
+  S.setsData.splice(i, 1);
+  S.sets--;
+  updateSets();
+  renderAllSets();
 }
 
 function reRandSet(i) {
@@ -578,12 +630,13 @@ function togN(si,n,isBonus) {
   renderAllSets();
 }
 
-function addSet(){
-  if(!S.game) return;
-  if(S.sets>=5){toast('สูงสุด 5 ชุด','info');return;}
+function addSet() {
+  if (!S.game) return;
+  if (S.sets >= 5) { toast('สูงสุด 5 ชุด', 'info'); return; }
   S.sets++;
-  S.setsData.push({mainSel:[],bonusSel:[],mode:'random'});
-  updateSets(); renderAllSets();
+  S.setsData.push({ mainSel: [], bonusSel: [], mode: 'random' });
+  updateSets();
+  renderAllSets();
 }
 
 
