@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Sabai Japan Lotto</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
 <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600&family=Itim&family=Noto+Sans+Thai:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -132,15 +132,16 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .bk-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
 .bk-id{font-family:'Itim',cursive;font-size:12px;color:var(--lav);font-weight:700}
 .bk-game{font-size:13px;font-weight:600;margin-bottom:4px}
-.bk-headline{font-size:13px;font-weight:600;line-height:1.45;color:var(--text);flex:1;min-width:0}
-.list-draw-bar{display:none;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;padding:10px 12px;background:var(--white);border:2px solid var(--pink3);border-radius:var(--r)}
-.list-draw-bar.show{display:flex}
-.list-draw-bar .title{font-size:13px;font-weight:600;color:var(--text);flex:1}
 .bk-balls{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
 .bk-ball{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Itim',cursive;font-size:10px;font-weight:700}
 .bk-ball.m{background:linear-gradient(135deg,var(--pink),var(--lav));color:var(--white)}
 .bk-ball.b{background:linear-gradient(135deg,var(--peach),#ff6b47);color:var(--white)}
 .bk-meta{font-size:11px;color:var(--text2);display:flex;flex-wrap:wrap;gap:7px}
+.bk-headline{font-size:13px;font-weight:600;color:var(--text);line-height:1.45;margin-bottom:6px}
+.bk-id-sm{font-size:10px;color:var(--lav);margin-bottom:4px}
+.list-draw-bar{display:none;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;padding:10px 12px;background:var(--white);border:2px solid var(--pink3);border-radius:var(--r);flex-wrap:wrap}
+.list-draw-bar.show{display:flex}
+.list-draw-bar .title{font-size:13px;font-weight:600;color:var(--text)}
 .bk-actions{display:flex;gap:6px;margin-top:8px}
 .bk-btn{padding:5px 12px;border-radius:var(--r3);font-size:11px;font-weight:600;cursor:pointer;border:none;font-family:'Mitr',sans-serif;transition:all .15s}
 .bk-btn.ok{background:var(--mint);color:#065f46}
@@ -348,8 +349,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   </div>
   <div class="list-filter-hint" id="listFilterHint">เลือกเกมก่อน แล้วเลือกงวดวันที่</div>
   <div class="list-draw-bar" id="listDrawBar">
-    <div class="title" id="listDrawTitle"></div>
-    <button type="button" class="bk-btn ok" style="white-space:nowrap;background:var(--lav);color:#fff" onclick="downloadAllDrawImages()">⬇ ดาวน์โหลดรูปทั้งหมด</button>
+    <span class="title" id="listDrawTitle"></span>
+    <button type="button" class="bk-btn ok" style="background:var(--lav);color:#fff;padding:8px 14px" onclick="openDownloadDrawConfirm()">⬇ ดาวน์โหลดรูปทั้งหมด</button>
   </div>
   <div class="draw-tz-note" style="margin-bottom:10px">วันที่งวดในรายการ = ตามเวลาอเมริกา (Central — Texas)</div>
   <div style="display:flex;gap:7px;margin-bottom:8px">
@@ -401,6 +402,19 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     </div>
     <div id="ticketModalBody"></div>
     <div class="ticket-modal-actions" id="ticketModalActions"></div>
+  </div>
+</div>
+
+<!-- DOWNLOAD CONFIRM (Admin 1) -->
+<div class="modal-bg" id="downloadConfirmBg" onclick="if(event.target===this)closeDownloadConfirm()">
+  <div class="modal" style="max-width:360px" onclick="event.stopPropagation()">
+    <div style="font-size:32px;margin-bottom:8px">⬇️</div>
+    <div class="modal-title" style="font-size:17px">ดาวน์โหลดรูปทั้งหมด</div>
+    <div id="downloadConfirmDetail" style="font-size:12px;color:var(--text2);margin:14px 0;line-height:1.5"></div>
+    <div style="display:flex;gap:10px">
+      <button type="button" onclick="closeDownloadConfirm()" style="flex:1;padding:11px;background:var(--cream);border:2px solid var(--pink3);border-radius:var(--r3);font-family:Mitr,sans-serif;cursor:pointer">ยกเลิก</button>
+      <button type="button" onclick="executeDownloadConfirm()" style="flex:1;padding:11px;background:linear-gradient(135deg,var(--lav),var(--sky));border:none;border-radius:var(--r3);color:#fff;font-family:Mitr,sans-serif;font-weight:600;cursor:pointer">ดาวน์โหลด</button>
+    </div>
   </div>
 </div>
 
@@ -1194,8 +1208,6 @@ function adminLogout(){
   document.getElementById('adminWhoLabel').innerHTML='';
   LIST_FILTER = { gameKey: '', drawDate: '' };
   document.getElementById('listDateRow').classList.remove('show');
-  var ldb = document.getElementById('listDrawBar');
-  if (ldb) ldb.classList.remove('show');
   var ld = document.getElementById('listDrawDate');
   if (ld) ld.value = '';
   document.querySelectorAll('.game-filter-pill').forEach(function(el){ el.classList.remove('active'); });
@@ -1243,21 +1255,20 @@ function getListGameLabel(key) {
 
 function updateListFilterHint() {
   var el = document.getElementById('listFilterHint');
+  var bar = document.getElementById('listDrawBar');
+  var title = document.getElementById('listDrawTitle');
   if (!el) return;
   if (!LIST_FILTER.gameKey) {
     el.textContent = 'เลือกเกมก่อน แล้วเลือกงวดวันที่';
-    var bar0 = document.getElementById('listDrawBar');
-    if (bar0) bar0.classList.remove('show');
+    if (bar) bar.classList.remove('show');
     return;
   }
   if (!LIST_FILTER.drawDate) {
     el.textContent = getListGameLabel(LIST_FILTER.gameKey) + ' — เลือกงวดวันที่ด้านบน';
-    document.getElementById('listDrawBar').classList.remove('show');
+    if (bar) bar.classList.remove('show');
     return;
   }
-  el.textContent = '📋 ' + getListGameLabel(LIST_FILTER.gameKey) + ' · งวด ' + LIST_FILTER.drawDate;
-  var bar = document.getElementById('listDrawBar');
-  var title = document.getElementById('listDrawTitle');
+  el.textContent = '📋 รายการจอง';
   if (bar && title && ADMIN.role === 1) {
     title.textContent = getListGameLabel(LIST_FILTER.gameKey) + ' - ' + LIST_FILTER.drawDate;
     bar.classList.add('show');
@@ -1354,8 +1365,8 @@ function renderList(list){
     html+='<div class="bk-card">';
     if(isA1){
       var profit=(b.total_sell||0)-(b.total_cost||0);
-      var headline=escAttr(b.game_name||'-')+' - '+escAttr(b.customer_name||'-')+' - '+escAttr(b.draw_date||'-')+' - '+(b.sets_count||1)+' แถว';
-      html+='<div class="bk-top"><div style="flex:1;min-width:0"><div class="bk-id">'+b.id+'</div><div class="bk-headline">'+headline+'</div></div><span class="status-tag '+sc+'">'+stTh+'</span></div>';
+      html+='<div class="bk-top"><div class="bk-headline">'+escAttr((b.game_name||'-')+' - '+(b.customer_name||'-')+' - '+(b.draw_date||'-')+' - '+(b.sets_count||1)+' แถว')+'</div><span class="status-tag '+sc+'">'+stTh+'</span></div>';
+      html+='<div class="bk-id-sm">'+escAttr(b.id)+'</div>';
       html+='<div class="bk-balls">'+balls+'</div>';
       html+='<div class="bk-meta"><span style="color:var(--peach)">บาท '+(b.total_sell||0)+'</span><span style="color:#10b981">กำไร บาท '+profit+'</span></div>';
       html+='<div class="bk-actions">';
@@ -1364,10 +1375,8 @@ function renderList(list){
       html+='</div>';
       html+='<div id="img-'+b.id+'"></div>';
     } else {
-      html+='<div class="bk-top"><div><div class="bk-game">'+b.game_name+'</div></div></div>';
-      html+='<div style="font-size:13px;font-weight:600;margin-bottom:5px">'+(b.customer_name||'-')+'</div>';
+      html+='<div class="bk-top"><div class="bk-headline">'+escAttr((b.game_name||'-')+' - '+(b.customer_name||'-')+' - '+(b.draw_date||'-')+' - '+(b.sets_count||1)+' แถว')+'</div></div>';
       html+='<div class="bk-balls">'+balls+'</div>';
-      html+='<div class="bk-meta"><span>📅 '+(b.draw_date||'-')+'</span><span>'+(b.sets_count||1)+' แถว</span></div>';
     }
     html+='</div>';
   });
@@ -1495,7 +1504,7 @@ async function loadPricePanel(){
     html+='<button class="btn-save-price" onclick="runAutoMatchAll()" style="margin-top:8px;background:linear-gradient(135deg,var(--lav),var(--sky))">🔗 ผูกอัตโนมัติทั้งหมด (เลือกเลข)</button>';
     html+='<div class="section-hd" style="margin-top:14px">🖼️ รูปที่อัพโหลดแล้ว</div>';
     html+='<div id="assignSummary" style="font-size:11px;color:var(--text2);margin-bottom:8px"></div>';
-    html+='<div id="uploadModeHint" style="font-size:11px;color:var(--text2);margin-bottom:6px">โหมดเลือกเลข: จับคู่เลขจากชื่อไฟล์ก่อน แล้วตั้งชื่อตามลูกค้า · ใบสุ่ม: ตั้งชื่อตามในรูป (เช่น M1.jpg)</div>';
+    html+='<div id="uploadModeHint" style="font-size:11px;color:var(--text2);margin-bottom:6px">โหมดเลือกเลข: อ่านเลขจากรูป → จับคู่ → ตั้งชื่อไฟล์ตามชื่อลูกค้า · ใบสุ่ม: ตั้งชื่อตามที่เห็นในรูป (เช่น M1)</div>';
     html+='<div id="galleryArea"></div>';
     html+='</div>';
 
@@ -1569,8 +1578,8 @@ function setUploadMode(mode) {
   var hint = document.getElementById('uploadModeHint');
   if (hint) {
     hint.textContent = _uploadMode === 'auto'
-      ? 'โหมดเลือกเลข: อัพด้วยชื่อไฟล์ที่มีเลขตรงใบจอง → ผูกแล้วเปลี่ยนชื่อเป็นชื่อลูกค้า'
-      : 'โหมดใบสุ่ม: ตั้งชื่อไฟล์ตามในรูป (M1, M2…) แล้วเลือกผูกรายการจอง';
+      ? 'โหมดเลือกเลข: OCR จับคู่เลขกับรายการจอง แล้วตั้งชื่อไฟล์ตามชื่อลูกค้า'
+      : 'โหมดใบสุ่ม: OCR อ่านชื่อบนใบ (เช่น M1) เป็นชื่อไฟล์ · เลือกผูกรายการเองได้';
   }
   loadTicketGallery();
 }
@@ -1643,24 +1652,77 @@ function slotKey(bookingId, setIndex) {
   return bookingId + '|' + setIndex;
 }
 
-/** L1, P2 หรือ 1-name.jpg → ลำดับรายการจอง */
-function ticketIndexFromName(name) {
-  var s = String(name || '').trim();
-  var m = s.match(/^([A-Za-z]+)(\d+)$/);
-  if (m) return parseInt(m[2], 10);
-  m = s.match(/^(\d+)[^0-9]/);
-  if (m) return parseInt(m[1], 10);
-  m = s.match(/^(\d+)$/);
-  if (m) return parseInt(m[1], 10);
+var _tesseractWorker = null;
+
+async function getOcrWorker() {
+  if (typeof Tesseract === 'undefined') throw new Error('OCR ยังโหลดไม่เสร็จ');
+  if (!_tesseractWorker) {
+    _tesseractWorker = await Tesseract.createWorker('eng');
+  }
+  return _tesseractWorker;
+}
+
+async function ocrImageFile(file) {
+  var worker = await getOcrWorker();
+  var ret = await worker.recognize(file);
+  return (ret && ret.data && ret.data.text) ? ret.data.text : '';
+}
+
+async function ocrImageUrl(url) {
+  var res = await fetch(url);
+  var blob = await res.blob();
+  return ocrImageFile(new File([blob], 'scan.jpg', { type: blob.type || 'image/jpeg' }));
+}
+
+function safeTicketFileName(name) {
+  return String(name || 'ticket').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_').trim().slice(0, 48) || 'ticket';
+}
+
+function uniqueUsedName(base, used) {
+  var n = base, c = 2;
+  while (used[n]) { n = base + '_' + c; c++; }
+  used[n] = true;
+  return n;
+}
+
+/** อ่านชื่อบนใบสุ่มจากรูป เช่น M1, L2 */
+function parseTicketLabelFromOcr(text, gameKey) {
+  var prefix = getTicketPrefix(gameKey);
+  var t = String(text || '');
+  var re = new RegExp('\\b(' + prefix + ')\\s*[#-]?\\s*(\\d{1,3})\\b', 'i');
+  var m = t.match(re);
+  if (m) return (m[1] || prefix).toUpperCase() + m[2];
+  m = t.match(new RegExp('\\b(' + prefix + ')(\\d{1,3})\\b', 'i'));
+  if (m) return m[1].toUpperCase() + m[2];
+  m = t.match(/(?:^|\n)\s*(\d{1,2})\s+[A-Za-z\u0E00-\u0E7F]/);
+  if (m) return prefix + m[1];
   return null;
 }
 
-function getManualBookingsOrdered(bookings) {
-  return (bookings || []).filter(function(b) {
-    return b.status !== 'cancelled' && !isRandomBooking(b);
-  }).sort(function(a, b) {
-    return String(a.created_at || a.id || '').localeCompare(String(b.created_at || b.id || ''));
-  });
+function findMatchFromOcr(ocrText, gameKey, bookings, taken) {
+  var multi = allNumberSetsFromFilename(ocrText, gameKey);
+  if (!multi.length) return null;
+  var slots = getManualSetSlots(bookings, gameKey);
+  var matched = [];
+  for (var i = 0; i < multi.length; i++) {
+    var sig = setSignature(gameKey, multi[i].main, multi[i].bonus);
+    for (var j = 0; j < slots.length; j++) {
+      var s = slots[j];
+      if (s.signature !== sig || taken[slotKey(s.bookingId, s.setIndex)]) continue;
+      matched.push(s);
+      break;
+    }
+  }
+  if (!matched.length) return null;
+  var bookingId = matched[0].bookingId;
+  var sameBk = matched.every(function(s) { return s.bookingId === bookingId; });
+  var b = (bookings || []).find(function(x) { return x.id === bookingId; });
+  return {
+    bookingId: bookingId,
+    setIndex: sameBk && matched.length === 1 ? matched[0].setIndex : null,
+    customerName: b ? b.customer_name : bookingId,
+    signature: matched.map(function(s) { return s.signature; }).join('+')
+  };
 }
 
 /** ดึงชุดเลขทั้งหมดจากชื่อไฟล์ (รองรับหลายแถวในชื่อเดียว) */
@@ -1681,89 +1743,7 @@ function allNumberSetsFromFilename(name, gameKey) {
   return sets;
 }
 
-function safeTicketBase(name) {
-  var s = String(name || 'guest').trim().replace(/[^\w\u0E00-\u0E7F]+/g, '_').replace(/_+/g, '_');
-  return s || 'guest';
-}
-
-/** ใบสุ่ม: ชื่อจากไฟล์ต้นฉบับ เช่น M1.jpg */
-function poolLabelFromFile(fileName, gameKey) {
-  var base = String(fileName || '').replace(/\.[^.]+$/i, '').trim();
-  var m = base.match(/^([A-Za-z])(\d+)$/i);
-  if (m) return m[1].toUpperCase() + m[2];
-  m = base.match(/^(\d+)$/);
-  if (m) return getTicketPrefix(gameKey) + m[1];
-  return safeTicketBase(base).slice(0, 24);
-}
-
-function bookingFileLabel(booking, setIndex, usedMap) {
-  var base = safeTicketBase(booking.customer_name);
-  if (setIndex != null && (booking.sets_count || 1) > 1) base += '-R' + (setIndex + 1);
-  if (usedMap[base]) {
-    usedMap[base]++;
-    base += '_' + usedMap[base];
-  } else {
-    usedMap[base] = 1;
-  }
-  return base;
-}
-
-async function renameTicketToBookingName(img, booking, setIndex, gameKey, drawDate, usedMap) {
-  if (!img || !booking) return;
-  usedMap = usedMap || {};
-  var label = bookingFileLabel(booking, setIndex, usedMap);
-  var ext = (img.storage_path || '').split('.').pop() || 'jpg';
-  var newPath = drawDate + '/' + gameKey + '/' + label + '.' + ext;
-  var finalPath = newPath;
-
-  if (img.storage_path && img.storage_path !== newPath) {
-    var moved = await sb.storage.from('lottery-tickets').move(img.storage_path, newPath);
-    if (moved.error) {
-      var altPath = drawDate + '/' + gameKey + '/' + label + '_' + Date.now() + '.' + ext;
-      var moved2 = await sb.storage.from('lottery-tickets').move(img.storage_path, altPath);
-      if (!moved2.error) finalPath = altPath;
-      else finalPath = img.storage_path;
-    }
-  }
-
-  var urlData = sb.storage.from('lottery-tickets').getPublicUrl(finalPath);
-  await sb.from('lottery_images').update({
-    file_name: label,
-    storage_path: finalPath,
-    public_url: urlData.publicUrl
-  }).eq('id', img.id);
-}
-
-async function renameAllLinkedForDraw(gameKey, drawDate) {
-  var { data: images } = await sb.from('lottery_images')
-    .select('*')
-    .eq('game_key', gameKey)
-    .eq('draw_date', drawDate)
-    .not('booking_id', 'is', null);
-  if (!images || !images.length) return;
-
-  var bookingMap = {};
-  var ids = [];
-  images.forEach(function(im) {
-    if (im.booking_id && ids.indexOf(im.booking_id) < 0) ids.push(im.booking_id);
-  });
-  for (var i = 0; i < ids.length; i++) {
-    var { data: b } = await sb.from('bookings').select('id,customer_name,sets_count').eq('id', ids[i]).maybeSingle();
-    if (b) bookingMap[b.id] = b;
-  }
-
-  var used = {};
-  var sorted = sortTicketImagesByName(images);
-  for (var j = 0; j < sorted.length; j++) {
-    var im = sorted[j];
-    var bk = bookingMap[im.booking_id];
-    if (!bk) continue;
-    await renameTicketToBookingName(im, bk, im.set_index, gameKey, drawDate, used);
-  }
-}
-
-async function autoMatchTicketImages(gameKey, drawDate, options) {
-  options = options || {};
+async function autoMatchTicketImages(gameKey, drawDate) {
   var [{ data: images }, { data: bookings }] = await Promise.all([
     sb.from('lottery_images').select('*').eq('game_key', gameKey).eq('draw_date', drawDate).is('booking_id', null),
     sb.from('bookings').select('*').eq('game_key', gameKey).eq('draw_date', drawDate).neq('status', 'cancelled')
@@ -1808,45 +1788,42 @@ async function autoMatchTicketImages(gameKey, drawDate, options) {
     return true;
   }
 
-  // ผ่าน 1: เลขในชื่อไฟล์ตรงแถว
+  async function tryMatchImage(img, text) {
+    var match = findMatchFromOcr(text, gameKey, bookings || [], taken);
+    if (!match) {
+      var parsed = numbersFromFilename(text, gameKey);
+      if (parsed) {
+        var sig = setSignature(gameKey, parsed.main, parsed.bonus);
+        var slot = slotBySig[sig];
+        if (slot) match = { bookingId: slot.bookingId, setIndex: slot.setIndex, customerName: slot.label, signature: sig };
+      }
+    }
+    if (!match) return false;
+    if (match.setIndex != null && taken[slotKey(match.bookingId, match.setIndex)]) return false;
+    if (match.setIndex == null && bookingHasImage[match.bookingId]) return false;
+    var ok = await linkImage(img, match.bookingId, match.setIndex, match.signature);
+    if (ok && slotBySig[match.signature]) delete slotBySig[match.signature];
+    return ok;
+  }
+
   for (var i = 0; i < images.length; i++) {
     var img = images[i];
     var src = img.source_filename || img.file_name || '';
-    var parsed = numbersFromFilename(src, gameKey);
-    if (!parsed) continue;
-    var sig = setSignature(gameKey, parsed.main, parsed.bonus);
-    var slot = slotBySig[sig];
-    if (!slot) continue;
-    if (await linkImage(img, slot.bookingId, slot.setIndex, sig)) delete slotBySig[sig];
+    await tryMatchImage(img, src);
   }
 
-  var { data: left2 } = await sb.from('lottery_images')
+  var { data: left } = await sb.from('lottery_images')
     .select('*')
     .eq('game_key', gameKey)
     .eq('draw_date', drawDate)
     .is('booking_id', null);
-
-  // ผ่าน 3: หลายชุดเลขในชื่อไฟล์เดียว
-  for (var k = 0; k < (left2 || []).length; k++) {
-    var im2 = left2[k];
-    var src2 = im2.source_filename || im2.file_name || '';
-    var multi = allNumberSetsFromFilename(src2, gameKey);
-    if (!multi.length) continue;
-    var linkedOne = false;
-    for (var m = 0; m < multi.length; m++) {
-      var sig2 = setSignature(gameKey, multi[m].main, multi[m].bonus);
-      var slot2 = slotBySig[sig2];
-      if (!slot2) continue;
-      if (await linkImage(im2, slot2.bookingId, slot2.setIndex, sig2)) {
-        delete slotBySig[sig2];
-        linkedOne = true;
-        break;
-      }
-    }
-    if (linkedOne) continue;
+  for (var k = 0; k < (left || []).length; k++) {
+    var im = left[k];
+    try {
+      var ocrText = await ocrImageUrl(im.public_url);
+      if (await tryMatchImage(im, ocrText)) matched++;
+    } catch (e) { /* skip */ }
   }
-
-  if (!options.skipRename) await renameAllLinkedForDraw(gameKey, drawDate);
 
   return matched;
 }
@@ -1946,70 +1923,106 @@ async function repairCancelledTicketsForDraw(gameKey, drawDate) {
 async function uploadTickets() {
   var drawDate = document.getElementById('uploadDrawDate').value;
   var gameKey = document.getElementById('uploadGameKey').value;
-  var isRandomMode = _uploadMode === 'random';
 
   if (!drawDate) { toast('เลือกงวดก่อน', 'err'); return; }
   if (!_ticketFiles.length) { toast('เลือกรูปก่อน', 'err'); return; }
 
   var progress = document.getElementById('uploadProgress');
-  progress.textContent = 'กำลังอัพโหลด 0/' + _ticketFiles.length + '...';
   progress.style.color = 'var(--text2)';
 
+  var { data: bookings } = await sb.from('bookings')
+    .select('*')
+    .eq('game_key', gameKey)
+    .eq('draw_date', drawDate)
+    .neq('status', 'cancelled');
+
+  var { data: linkedRows } = await sb.from('lottery_images')
+    .select('booking_id,set_index')
+    .eq('game_key', gameKey)
+    .eq('draw_date', drawDate)
+    .not('booking_id', 'is', null);
+
+  var taken = {};
+  var bookingHasImage = {};
+  (linkedRows || []).forEach(function(img) {
+    if (img.booking_id) {
+      bookingHasImage[img.booking_id] = true;
+      if (img.set_index != null) taken[slotKey(img.booking_id, img.set_index)] = true;
+    }
+  });
+
+  var usedNames = {};
   var uploaded = 0;
+  var linkedN = 0;
+
   for (var i = 0; i < _ticketFiles.length; i++) {
     var file = _ticketFiles[i];
-    var ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-    var fileLabel = isRandomMode
-      ? poolLabelFromFile(file.name, gameKey)
-      : ('tmp-' + Date.now() + '-' + i);
-    var storagePath = drawDate + '/' + gameKey + '/' + fileLabel + '.' + ext;
-    var rowId = fileLabel + '-' + drawDate + '-' + Date.now() + '-' + i;
+    progress.textContent = 'อ่านรูป & อัพโหลด ' + (i + 1) + '/' + _ticketFiles.length + '...';
 
-    var {error: storageError} = await sb.storage
+    var ocrText = '';
+    try {
+      ocrText = await ocrImageFile(file);
+    } catch (e) {
+      console.warn('OCR failed', e);
+    }
+
+    var ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    var fileName = 'tmp-' + Date.now() + '-' + i;
+    var bookingId = null;
+    var setIndex = null;
+    var sig = null;
+
+    if (_uploadMode === 'random') {
+      fileName = parseTicketLabelFromOcr(ocrText, gameKey) || parseTicketLabelFromOcr(file.name, gameKey) || ('scan-' + (i + 1));
+      fileName = uniqueUsedName(safeTicketFileName(fileName), usedNames);
+    } else {
+      var match = findMatchFromOcr(ocrText, gameKey, bookings || [], taken);
+      if (match) {
+        bookingId = match.bookingId;
+        setIndex = match.setIndex;
+        sig = match.signature;
+        fileName = uniqueUsedName(safeTicketFileName(match.customerName), usedNames);
+        if (setIndex != null) taken[slotKey(bookingId, setIndex)] = true;
+        else bookingHasImage[bookingId] = true;
+        linkedN++;
+      } else {
+        fileName = uniqueUsedName('unmatched-' + (i + 1), usedNames);
+      }
+    }
+
+    var storagePath = drawDate + '/' + gameKey + '/' + fileName + '.' + ext;
+    var { error: storageError } = await sb.storage
       .from('lottery-tickets')
       .upload(storagePath, file, { upsert: true });
 
     if (storageError) {
-      storagePath = drawDate + '/' + gameKey + '/' + fileLabel + '_' + i + '.' + ext;
-      rowId = fileLabel + '-' + i + '-' + Date.now();
-      var retryUp = await sb.storage.from('lottery-tickets').upload(storagePath, file, { upsert: true });
-      if (retryUp.error) {
-        toast('อัพโหลด ' + file.name + ' ไม่สำเร็จ: ' + retryUp.error.message, 'err');
-        continue;
-      }
+      toast('อัพโหลด ' + fileName + ' ไม่สำเร็จ: ' + storageError.message, 'err');
+      continue;
     }
 
-    var {data: urlData} = sb.storage.from('lottery-tickets').getPublicUrl(storagePath);
-    var publicUrl = urlData.publicUrl;
-
-    var parsed = !isRandomMode ? numbersFromFilename(file.name, gameKey) : null;
-    var sig = parsed ? setSignature(gameKey, parsed.main, parsed.bonus) : null;
+    var { data: urlData } = sb.storage.from('lottery-tickets').getPublicUrl(storagePath);
 
     await sb.from('lottery_images').insert({
-      id: rowId,
+      id: fileName + '-' + drawDate + '-' + Date.now() + '-' + i,
       game_key: gameKey,
       draw_date: drawDate,
-      file_name: fileLabel,
+      file_name: fileName,
       storage_path: storagePath,
-      public_url: publicUrl,
-      booking_id: null,
-      set_index: null,
+      public_url: urlData.publicUrl,
+      booking_id: bookingId,
+      set_index: bookingId ? setIndex : null,
       source_filename: file.name,
       number_signature: sig
     });
 
     uploaded++;
-    progress.textContent = 'กำลังอัพโหลด ' + uploaded + '/' + _ticketFiles.length + '...';
   }
 
-  var autoN = 0;
-  if (!isRandomMode) autoN = await autoMatchTicketImages(gameKey, drawDate);
-
-  progress.textContent = '✅ อัพโหลดสำเร็จ ' + uploaded + ' รูป!' + (autoN ? ' · ผูก ' + autoN + ' รูป · ตั้งชื่อตามลูกค้า' : '');
+  progress.textContent = '✅ อัพโหลด ' + uploaded + ' รูป' + (linkedN ? ' · ผูก ' + linkedN : '');
   progress.style.color = 'var(--mint)';
   _ticketFiles = [];
   document.getElementById('uploadPreviewArea').innerHTML = '';
-  toast('อัพโหลด ' + uploaded + ' รูป' + (autoN ? ' · ผูกอัตโนมัติ ' + autoN : '') + ' 🌸', 'ok');
+  toast('อัพโหลด ' + uploaded + ' รูป' + (linkedN ? ' · ผูกอัตโนมัติ ' + linkedN : '') + ' 🌸', 'ok');
   loadTicketGallery();
   refreshAllBookingImages();
 }
@@ -2149,11 +2162,6 @@ async function assignTicket(imageId, value) {
     loadTicketGallery();
     return;
   }
-  if (bookingId && _uploadMode !== 'random') {
-    var { data: bk } = await sb.from('bookings').select('id,customer_name,sets_count,game_key,draw_date').eq('id', bookingId).maybeSingle();
-    var { data: im } = await sb.from('lottery_images').select('*').eq('id', imageId).maybeSingle();
-    if (bk && im) await renameTicketToBookingName(im, bk, setIndex, bk.game_key, bk.draw_date, {});
-  }
   toast(bookingId ? 'ผูกรูปแล้ว 🌸' : 'ยกเลิกการผูกแล้ว', 'ok');
   loadTicketGallery();
   refreshAllBookingImages();
@@ -2179,76 +2187,108 @@ async function deleteTicket(id) {
 }
 
 function downloadImageUrl(url, filename) {
+  downloadImageBlob(url, filename).catch(function() {
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename || 'ticket.jpg';
+    a.target = '_blank';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  });
+}
+
+async function downloadImageBlob(url, filename) {
+  var res = await fetch(url);
+  if (!res.ok) throw new Error('fetch failed');
+  var blob = await res.blob();
+  var ext = '.jpg';
+  if (filename && filename.indexOf('.') > -1) ext = filename.slice(filename.lastIndexOf('.'));
   var a = document.createElement('a');
-  a.href = url;
-  a.download = filename || 'ticket.jpg';
-  a.target = '_blank';
-  a.rel = 'noopener';
+  a.href = URL.createObjectURL(blob);
+  a.download = filename || ('ticket' + ext);
   document.body.appendChild(a);
   a.click();
   a.remove();
+  setTimeout(function() { URL.revokeObjectURL(a.href); }, 500);
 }
 
-async function downloadAllDrawImages() {
+function openDownloadDrawConfirm() {
   if (!LIST_FILTER.gameKey || !LIST_FILTER.drawDate) {
     toast('เลือกเกมและงวดก่อน', 'err');
     return;
   }
-  if (ADMIN.role !== 1) return;
+  window._pendingDownloadBookingId = null;
+  var detail = document.getElementById('downloadConfirmDetail');
+  if (detail) {
+    detail.textContent = 'ดาวน์โหลดรูปใบลอตเตอรี่ทั้งหมดของ ' + getListGameLabel(LIST_FILTER.gameKey) + ' - ' + LIST_FILTER.drawDate + ' เป็นไฟล์รูปแยกทีละไฟล์ (ไม่ใช่ Zip)';
+  }
+  document.getElementById('downloadConfirmBg').classList.add('show');
+}
 
-  var { data, error } = await sb.from('lottery_images')
-    .select('*')
-    .eq('game_key', LIST_FILTER.gameKey)
-    .eq('draw_date', LIST_FILTER.drawDate);
-
-  if (error) {
-    toast('โหลดรูปไม่สำเร็จ', 'err');
+async function executeDownloadConfirm() {
+  if (window._pendingDownloadBookingId) {
+    var bid = window._pendingDownloadBookingId;
+    window._pendingDownloadBookingId = null;
+    closeDownloadConfirm();
+    await executeDownloadBookingImages(bid);
     return;
   }
+  await executeDownloadDrawImages();
+}
 
-  var imgs = sortTicketImagesByName(data || []);
-  if (!imgs.length) {
+function closeDownloadConfirm() {
+  document.getElementById('downloadConfirmBg').classList.remove('show');
+}
+
+async function executeDownloadDrawImages() {
+  closeDownloadConfirm();
+  var gameKey = LIST_FILTER.gameKey;
+  var drawDate = LIST_FILTER.drawDate;
+  if (!gameKey || !drawDate) return;
+
+  toast('กำลังเตรียมดาวน์โหลด...', 'info');
+
+  var { data: images } = await sb.from('lottery_images')
+    .select('*')
+    .eq('game_key', gameKey)
+    .eq('draw_date', drawDate)
+    .order('file_name', { ascending: true });
+
+  images = sortTicketImagesByName(images || []);
+  if (!images.length) {
     toast('ไม่มีรูปในงวดนี้', 'err');
     return;
   }
 
-  toast('กำลังดาวน์โหลด ' + imgs.length + ' รูป...', 'ok');
-
-  if (typeof JSZip !== 'undefined') {
-    try {
-      var zip = new JSZip();
-      var folder = zip.folder(LIST_FILTER.gameKey + '_' + LIST_FILTER.drawDate);
-      for (var i = 0; i < imgs.length; i++) {
-        var img = imgs[i];
-        var ext = (img.storage_path || '').split('.').pop() || 'jpg';
-        var res = await fetch(img.public_url);
-        var blob = await res.blob();
-        folder.file((img.file_name || ('img' + (i + 1))) + '.' + ext, blob);
-      }
-      var content = await zip.generateAsync({ type: 'blob' });
-      var a = document.createElement('a');
-      a.href = URL.createObjectURL(content);
-      a.download = LIST_FILTER.gameKey + '-' + LIST_FILTER.drawDate + '-tickets.zip';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      toast('ดาวน์โหลด ZIP ' + imgs.length + ' รูปแล้ว', 'ok');
-      return;
-    } catch (e) {
-      console.warn('ZIP failed', e);
+  for (var i = 0; i < images.length; i++) {
+    var img = images[i];
+    var ext = '.jpg';
+    if (img.storage_path && img.storage_path.indexOf('.') > -1) {
+      ext = img.storage_path.slice(img.storage_path.lastIndexOf('.'));
     }
-  }
-
-  for (var j = 0; j < imgs.length; j++) {
-    var im = imgs[j];
-    var ext2 = (im.storage_path || '').split('.').pop() || 'jpg';
-    downloadImageUrl(im.public_url, (im.file_name || 'ticket') + '.' + ext2);
+    var fname = (img.file_name || 'ticket') + ext;
+    try {
+      await downloadImageBlob(img.public_url, fname);
+    } catch (e) {
+      downloadImageUrl(img.public_url, fname);
+    }
     await new Promise(function(r) { setTimeout(r, 400); });
   }
-  toast('ดาวน์โหลด ' + imgs.length + ' รูปแล้ว', 'ok');
+  toast('ดาวน์โหลด ' + images.length + ' รูปแล้ว', 'ok');
 }
 
 async function downloadAllBookingImages(bookingId) {
+  var b = _bks.find(function(x) { return x.id === bookingId; });
+  var label = b ? (b.game_name + ' - ' + (b.customer_name || bookingId)) : bookingId;
+  var detail = document.getElementById('downloadConfirmDetail');
+  if (detail) detail.textContent = 'ดาวน์โหลดรูปของ ' + label + ' ทีละไฟล์';
+  document.getElementById('downloadConfirmBg').classList.add('show');
+  window._pendingDownloadBookingId = bookingId;
+}
+
+async function executeDownloadBookingImages(bookingId) {
   var imgs = _bookingImageCache[bookingId];
   if (!imgs || !imgs.length) {
     toast('ไม่มีรูปให้ดาวน์โหลด', 'err');
@@ -2256,10 +2296,15 @@ async function downloadAllBookingImages(bookingId) {
   }
   for (var i = 0; i < imgs.length; i++) {
     var img = imgs[i];
-    var name = (img.file_name || 'ticket') + (img.source_filename && img.source_filename.indexOf('.') > -1
-      ? img.source_filename.slice(img.source_filename.lastIndexOf('.')) : '.jpg');
-    downloadImageUrl(img.public_url, name);
-    await new Promise(function(r) { setTimeout(r, 350); });
+    var ext = '.jpg';
+    if (img.storage_path && img.storage_path.indexOf('.') > -1) ext = img.storage_path.slice(img.storage_path.lastIndexOf('.'));
+    var fname = (img.file_name || 'ticket') + ext;
+    try {
+      await downloadImageBlob(img.public_url, fname);
+    } catch (e) {
+      downloadImageUrl(img.public_url, fname);
+    }
+    await new Promise(function(r) { setTimeout(r, 400); });
   }
   toast('ดาวน์โหลด ' + imgs.length + ' รูปแล้ว', 'ok');
 }
@@ -2295,7 +2340,11 @@ function openTicketModal(bookingId, startIndex) {
   btnOne.type = 'button';
   btnOne.className = 'btn-modal';
   btnOne.textContent = '⬇ ดาวน์โหลดรูปนี้';
-  btnOne.onclick = function() { downloadImageUrl(img.public_url, img.file_name + '.jpg'); };
+  btnOne.onclick = function() {
+    var ext = '.jpg';
+    if (img.storage_path && img.storage_path.indexOf('.') > -1) ext = img.storage_path.slice(img.storage_path.lastIndexOf('.'));
+    downloadImageBlob(img.public_url, (img.file_name || 'ticket') + ext);
+  };
   actions.appendChild(btnOne);
   var btnAll = document.createElement('button');
   btnAll.type = 'button';
