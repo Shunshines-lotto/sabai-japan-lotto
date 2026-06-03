@@ -377,6 +377,7 @@ const GAMES = {
 
 // ── STATE ───────────────────────────────────────
 var PRICES = {};
+var _lastDbError = null;
 var ADMIN = {role:0};
 var PINS = {1:'1567', 2:'2810'};
 var _pTarget=0, _pVal='';
@@ -386,7 +387,11 @@ var S = {game:null,drawDate:'',method:'random',setsData:[{mainSel:[],bonusSel:[]
 // ── INIT ────────────────────────────────────────
 async function init() {
   try {
-    await loadPrices();
+    var ok = await loadPrices();
+    if (!ok && !window._priceWarned) {
+      window._priceWarned = true;
+      toast(dbErrMsg(_lastDbError), 'err');
+    }
   } catch(e) {
     console.error('loadPrices failed:', e);
   }
@@ -394,11 +399,25 @@ async function init() {
 }
 init();
 
+function dbErrMsg(error) {
+  if (error && error.code === '42501') {
+    return 'ฐานข้อมูลยังไม่ได้ตั้งสิทธิ์ — รันไฟล์ supabase-setup.sql ใน Supabase SQL Editor';
+  }
+  return error ? error.message : 'unknown error';
+}
+
 async function loadPrices() {
   console.log('Loading prices...');
   var {data, error} = await sb.from('prices').select('*');
   console.log('data:', data, 'error:', error);
+  if (error) {
+    _lastDbError = error;
+    console.error('loadPrices failed:', error);
+    return false;
+  }
+  _lastDbError = null;
   if (data) data.forEach(function(p){ PRICES[p.game_key] = p; });
+  return true;
 }
 
 function buildGameGrid() {
@@ -686,7 +705,7 @@ async function doSubmit() {
     status: 'pending'
   });
   if (error) {
-    toast('บันทึกไม่สำเร็จ: '+error.message,'err');
+    toast('บันทึกไม่สำเร็จ: '+dbErrMsg(error),'err');
     btn.disabled=false; btn.innerHTML='<span>✨</span> บันทึกรายการจอง';
     return;
   }
