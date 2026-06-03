@@ -4,6 +4,7 @@
 -- ── Tables ──────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.prices (
   game_key   text PRIMARY KEY,
+  game_name  text NOT NULL,
   sell_price numeric NOT NULL DEFAULT 0,
   pp_sell    numeric NOT NULL DEFAULT 0,
   cost_price numeric NOT NULL DEFAULT 0,
@@ -33,12 +34,12 @@ CREATE TABLE IF NOT EXISTS public.bookings (
 );
 
 -- Seed price rows for every game (Admin can edit later)
-INSERT INTO public.prices (game_key, sell_price, pp_sell, cost_price, pp_cost) VALUES
-  ('powerball',    0, 0, 0, 0),
-  ('mega',         0, 0, 0, 0),
-  ('txtwostep',    0, 0, 0, 0),
-  ('txlotto',      0, 0, 0, 0),
-  ('allornothing', 0, 0, 0, 0)
+INSERT INTO public.prices (game_key, game_name, sell_price, pp_sell, cost_price, pp_cost) VALUES
+  ('powerball',    'Power Ball',     0, 0, 0, 0),
+  ('mega',         'Mega Millions',  0, 0, 0, 0),
+  ('txtwostep',    'TX Two Step',    0, 0, 0, 0),
+  ('txlotto',      'TX Lotto',       0, 0, 0, 0),
+  ('allornothing', 'All or Nothing', 0, 0, 0, 0)
 ON CONFLICT (game_key) DO NOTHING;
 
 -- ── Privileges (required for browser / anon key) ───────────────
