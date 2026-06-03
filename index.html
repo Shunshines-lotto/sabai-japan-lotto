@@ -253,7 +253,16 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
       </div>
     </div>
   </div>
-  <div id="secMethod" style="display:none"></div>
+  <div class="sbox" id="secMethod" style="display:none">
+    <div class="stitle">📄 วิธีเลือกเลข</div>
+    <div class="method-row" id="methodRow">
+      <div class="mpill" id="mDraw" onclick="setGlobalMethod('draw')" style="display:none">📄 จองใบสุ่ม</div>
+    </div>
+  </div>
+  <div class="sbox" id="secImgs" style="display:none">
+    <div class="stitle">📄 เลือกใบสุ่ม</div>
+    <div class="empty">📂 ยังไม่มีรูปใบสุ่ม</div>
+  </div>
   <div class="sbox" id="secSets" style="display:none">
     <div class="stitle">🎫 จำนวนชุด <span class="badge">สูงสุด 5</span></div>
     <div style="display:flex;align-items:center;justify-content:space-between;background:var(--cream);border:2px solid var(--pink3);border-radius:var(--r);padding:10px 13px">
@@ -406,7 +415,7 @@ function pickGame(key) {
   document.querySelectorAll('.game-card').forEach(function(c,i){
     c.classList.toggle('sel', Object.keys(GAMES)[i]===key);
   });
-  var hide=['secDate','secOnline','secMethod','secSets','secPP','secAllSets','secInfo','secSubmit'];
+  var hide=['secDate','secOnline','secMethod','secSets','secPP','secAllSets','secImgs','secInfo','secSubmit'];
   hide.forEach(function(id){ document.getElementById(id).style.display='none'; });
   if (g.onlineOnly) { document.getElementById('secOnline').style.display='block'; return; }
   document.getElementById('secDate').style.display='block';
@@ -415,7 +424,8 @@ function pickGame(key) {
   document.getElementById('secMethod').style.display='block';
   setMethod('random', true);
   updateSets();
-  var noDrawGames=['txlotto','allornothing'];
+  var drawGames=['powerball','mega','txtwostep'];
+  document.getElementById('mDraw').style.display=drawGames.indexOf(key)>-1?'':'none';
   ['secSets','secAllSets','secInfo','secSubmit'].forEach(function(id){ document.getElementById(id).style.display='block'; });
   if (g.hasPP) {
     document.getElementById('secPP').style.display='block';
@@ -446,6 +456,16 @@ function pickDate(el,val) {
 }
 
 // ── METHOD ──────────────────────────────────────
+function setGlobalMethod(m){
+  if(!S.game) return;
+  S.method=m;
+  document.getElementById('mDraw').classList.toggle('active',m==='draw');
+  document.getElementById('secAllSets').style.display=m==='draw'?'none':'block';
+  document.getElementById('secSets').style.display=m==='draw'?'none':'block';
+  document.getElementById('secImgs').style.display=m==='draw'?'block':'none';
+  if(m!=='draw') renderAllSets();
+}
+
 function setMethod(m, silent) {
   if (!S.game) return;
   S.method=m;
@@ -624,7 +644,7 @@ function shareLine(){window.open('https://line.me/R/msg/text/?'+encodeURICompone
 function resetForm(){
   S.game=null;S.setsData=[{mainSel:[],bonusSel:[]}];S.powerPlay=false;S.sets=1;S.drawDate='';
   document.querySelectorAll('.game-card').forEach(function(c){c.classList.remove('sel');});
-  ['secDate','secOnline','secMethod','secSets','secPP','secAllSets','secInfo','secSubmit'].forEach(function(id){document.getElementById(id).style.display='none';});
+  ['secDate','secOnline','secMethod','secSets','secPP','secAllSets','secImgs','secInfo','secSubmit'].forEach(function(id){document.getElementById(id).style.display='none';});
   document.getElementById('fName').value='';document.getElementById('fPhone').value='';document.getElementById('fNote').value='';
 }
 
