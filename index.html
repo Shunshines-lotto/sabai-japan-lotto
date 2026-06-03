@@ -788,7 +788,7 @@ async function loadRandomTicketPool() {
     return;
   }
 
-  var pool = data || [];
+  var pool = sortTicketImagesByName(data || []);
   _randomPoolCache = {};
   pool.forEach(function(im) { _randomPoolCache[im.id] = im; });
   if (badge) badge.textContent = pool.length ? pool.length + ' ใบ' : '';
@@ -1361,7 +1361,12 @@ async function updStatus(id, status) {
   }).eq('id', id);
 
   if (!error) {
-    toast(status === 'cancelled' ? '❌ ยกเลิกแล้ว' : '✅ ยืนยันแล้ว 🌸', 'ok');
+    if (status === 'cancelled') {
+      await releaseTicketImagesForBooking(id);
+      if (S.method === 'draw' && S.game && S.drawDate) loadRandomTicketPool();
+      if (ADMIN.role === 2) loadTicketGallery();
+    }
+    toast(status === 'cancelled' ? '❌ ยกเลิกแล้ว · ใบสุ่มคืนเข้าคลังแล้ว' : '✅ ยืนยันแล้ว 🌸', 'ok');
     _bks = _bks.filter(function(b) { return b.id !== id || status !== 'cancelled'; });
     if (status !== 'cancelled') {
       var found = _bks.find(function(b) { return b.id === id; });
@@ -1369,6 +1374,7 @@ async function updStatus(id, status) {
     }
     filterList();
     loadStats();
+    refreshAllBookingImages();
   } else {
     toast('เกิดข้อผิดพลาด', 'err');
   }
@@ -1681,6 +1687,31 @@ function getTicketPrefix(gameKey) {
   return prefixes[gameKey] || 'X';
 }
 
+/** เรียงชื่อใบ เช่น M1, M2, M10 จากน้อยไปมาก */
+function ticketFileSortKey(fileName) {
+  var m = String(fileName || '').trim().match(/^([A-Za-z]+)(\d+)$/);
+  if (m) return { prefix: m[1].toUpperCase(), num: parseInt(m[2], 10) };
+  return { prefix: String(fileName || ''), num: 0 };
+}
+
+function sortTicketImagesByName(list) {
+  return (list || []).slice().sort(function(a, b) {
+    var ka = ticketFileSortKey(a.file_name);
+    var kb = ticketFileSortKey(b.file_name);
+    if (ka.prefix !== kb.prefix) return ka.prefix.localeCompare(kb.prefix);
+    if (ka.num !== kb.num) return ka.num - kb.num;
+    return String(a.file_name || '').localeCompare(b.file_name || '');
+  });
+}
+
+async function releaseTicketImagesForBooking(bookingId) {
+  if (!bookingId) return;
+  await sb.from('lottery_images').update({
+    booking_id: null,
+    set_index: null
+  }).eq('booking_id', bookingId);
+}
+
 function getTicketName(index) {
   var gameKey = document.getElementById('uploadGameKey') ? document.getElementById('uploadGameKey').value : 'powerball';
   return getTicketPrefix(gameKey) + (index + 1);
@@ -1778,7 +1809,7 @@ async function loadTicketGallery() {
   ]);
 
   bookings = bookings || [];
-  images = images || [];
+  images = sortTicketImagesByName(images || []);
 
   var assignedCount = images.filter(function(img) { return img.booking_id; }).length;
   if (summary) {
@@ -1975,10 +2006,10 @@ async function loadBookingImages(bookingId, gameKey, drawDate, containerId) {
     .eq('booking_id', bookingId)
     .order('file_name', { ascending: true });
 
-  data = (data || []).slice().sort(function(a, b) {
+  data = sortTicketImagesByName(data || []).sort(function(a, b) {
     var ai = a.set_index == null ? 999 : a.set_index;
     var bi = b.set_index == null ? 999 : b.set_index;
-    return ai - bi || String(a.file_name).localeCompare(b.file_name);
+    return ai - bi;
   });
   _bookingImageCache[bookingId] = data;
 
