@@ -320,6 +320,24 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 </div>
 </div>
 
+<!-- CONFIRM MODAL -->
+<div class="modal-bg" id="confirmBg">
+  <div class="modal" style="max-width:400px">
+    <div style="font-size:36px;margin-bottom:8px">🎟️</div>
+    <div class="modal-title" style="margin-bottom:14px">ยืนยันการจอง</div>
+
+    <div id="confirmDetail" style="background:var(--cream);border-radius:var(--r2);padding:14px;margin-bottom:14px;text-align:left;border:2px solid var(--pink3)"></div>
+
+    <div style="font-family:Itim,cursive;font-size:24px;color:var(--peach);margin-bottom:6px" id="confirmPrice">บาท 0</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:18px">กรุณาตรวจสอบเลขก่อนชำระเงิน</div>
+
+    <div style="display:flex;gap:10px">
+      <button onclick="closeConfirm()" style="flex:1;padding:12px;background:var(--cream);border:2px solid var(--pink3);border-radius:var(--r3);color:var(--text2);font-family:Mitr,sans-serif;font-size:13px;font-weight:600;cursor:pointer">← แก้ไข</button>
+      <button onclick="doPayment()" style="flex:2;padding:12px;background:linear-gradient(135deg,#00b900,#00d400);border:none;border-radius:var(--r3);color:#fff;font-family:Mitr,sans-serif;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(0,185,0,.3)">💬 ชำระเงินผ่าน LINE</button>
+    </div>
+  </div>
+</div>
+
 <!-- SUCCESS MODAL -->
 <div class="modal-bg" id="modalBg">
   <div class="modal">
@@ -382,7 +400,7 @@ var ADMIN = {role:0};
 var PINS = {1:'1567', 2:'2810'};
 var _pTarget=0, _pVal='';
 var DAY_MAP={MO:'Mon',TU:'Tue',WE:'Wed',TH:'Thu',FR:'Fri',SA:'Sat',SU:'Sun'};
-var S = {game:null,drawDate:'',method:'random',setsData:[{mainSel:[],bonusSel:[]}],powerPlay:false,sets:1,lastId:'',lastTotal:0};
+var S = {game:null,drawDate:'',method:'random',setsData:[{mainSel:[],bonusSel:[]}],powerPlay:false,sets:1,lastId:'',lastTotal:0,pendingBooking:null};
 
 // ── INIT ────────────────────────────────────────
 async function init() {
@@ -666,7 +684,7 @@ function rnd(max,n){
 }
 
 // ── SUBMIT ──────────────────────────────────────
-async function doSubmit() {
+function doSubmit() {
   if (!S.game){toast('เลือกเกมก่อน','err');return;}
   if (!S.drawDate){toast('เลือกงวดก่อน','err');return;}
   var g=GAMES[S.game];
@@ -682,36 +700,110 @@ async function doSubmit() {
   }
   var btn=document.getElementById('btnSub');
   btn.disabled=true; btn.innerHTML='<span>⏳</span> บันทึก...';
-  var p=PRICES[S.game]||{};
-  var unitSell=(p.sell_price||0)+(S.powerPlay?(p.pp_sell||0):0);
-  var unitCost=(p.cost_price||0)+(S.powerPlay?(p.pp_cost||0):0);
-  var id='SJL'+Date.now().toString(36).toUpperCase();
+  showConfirm({
+    gameKey: S.game,
+    drawDate: S.drawDate,
+    method: S.method,
+    setsData: S.setsData,
+    powerPlay: S.powerPlay,
+    sets: S.sets,
+    name: document.getElementById('fName').value,
+    phone: document.getElementById('fPhone').value,
+    note: document.getElementById('fNote').value
+  });
+}
+
+function showConfirm(bookingData) {
+  S.pendingBooking = bookingData;
+
+  var g = GAMES[bookingData.gameKey];
+  var p = PRICES[bookingData.gameKey] || {};
+  var unitSell = (p.sell_price || 0) + (bookingData.powerPlay ? (p.pp_sell || 0) : 0);
+  var total = unitSell * bookingData.sets;
+
+  var html = '';
+  html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px">';
+  html += '<span style="font-weight:600;color:var(--text)">' + g.emoji + ' ' + g.name + '</span>';
+  html += '<span style="color:var(--text2)">' + bookingData.drawDate + '</span>';
+  html += '</div>';
+
+  bookingData.setsData.forEach(function(sd, i) {
+    html += '<div style="margin-bottom:8px;padding:8px;background:var(--white);border-radius:10px;border:1px solid var(--pink3)">';
+    html += '<div style="font-size:11px;color:var(--text2);margin-bottom:5px">ชุดที่ ' + (i+1) + '</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">';
+    sd.mainSel.slice().sort(function(a,b){return a-b;}).forEach(function(n){
+      html += '<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--pink),var(--lav));color:#fff;display:flex;align-items:center;justify-content:center;font-family:Itim,cursive;font-size:12px;font-weight:700">' + (n<10?'0':'') + n + '</div>';
+    });
+    if (sd.bonusSel && sd.bonusSel.length) {
+      html += '<span style="color:var(--pink2);font-size:14px">+</span>';
+      sd.bonusSel.forEach(function(n){
+        html += '<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--peach),#ff6b47);color:#fff;display:flex;align-items:center;justify-content:center;font-family:Itim,cursive;font-size:12px;font-weight:700">' + (n<10?'0':'') + n + '</div>';
+      });
+    }
+    html += '</div></div>';
+  });
+
+  html += '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-top:6px">';
+  html += '<span>' + bookingData.sets + ' ชุด × บาท' + unitSell + '</span>';
+  if (bookingData.powerPlay) html += '<span style="color:var(--lav)">⚡ Power Play</span>';
+  html += '</div>';
+
+  document.getElementById('confirmDetail').innerHTML = html;
+  document.getElementById('confirmPrice').textContent = 'บาท ' + total;
+  document.getElementById('confirmBg').classList.add('show');
+}
+
+function closeConfirm() {
+  document.getElementById('confirmBg').classList.remove('show');
+  S.pendingBooking = null;
+  var btn = document.getElementById('btnSub');
+  btn.disabled = false;
+  btn.innerHTML = '<span>✨</span> บันทึกรายการจอง';
+}
+
+async function doPayment() {
+  var bookingData = S.pendingBooking;
+  if (!bookingData) return;
+
+  var g = GAMES[bookingData.gameKey];
+  var p = PRICES[bookingData.gameKey] || {};
+  var unitSell = (p.sell_price || 0) + (bookingData.powerPlay ? (p.pp_sell || 0) : 0);
+  var unitCost = (p.cost_price || 0) + (bookingData.powerPlay ? (p.pp_cost || 0) : 0);
+  var id = 'SJL' + Date.now().toString(36).toUpperCase();
+
   var {error} = await sb.from('bookings').insert({
     id: id,
-    customer_name: document.getElementById('fName').value,
-    customer_phone: document.getElementById('fPhone').value,
-    game_key: S.game,
-    game_name: GAMES[S.game].name,
-    draw_date: S.drawDate,
-    sets_data: S.setsData,
-    sets_count: S.sets,
-    method: S.method,
-    power_play: S.powerPlay,
+    customer_name: bookingData.name,
+    customer_phone: bookingData.phone,
+    game_key: bookingData.gameKey,
+    game_name: g.name,
+    draw_date: bookingData.drawDate,
+    sets_data: bookingData.setsData,
+    sets_count: bookingData.sets,
+    method: bookingData.method,
+    power_play: bookingData.powerPlay,
     sell_price: unitSell,
     cost_price: unitCost,
-    total_sell: unitSell*S.sets,
-    total_cost: unitCost*S.sets,
-    note: document.getElementById('fNote').value,
+    total_sell: unitSell * bookingData.sets,
+    total_cost: unitCost * bookingData.sets,
+    note: bookingData.note,
     status: 'pending'
   });
+
   if (error) {
-    toast('บันทึกไม่สำเร็จ: '+dbErrMsg(error),'err');
-    btn.disabled=false; btn.innerHTML='<span>✨</span> บันทึกรายการจอง';
+    toast('บันทึกไม่สำเร็จ: ' + dbErrMsg(error), 'err');
     return;
   }
-  S.lastId=id; S.lastTotal=unitSell*S.sets;
-  document.getElementById('mId').textContent=id;
-  document.getElementById('mPrice').textContent='บาท '+(unitSell*S.sets);
+
+  S.lastId = id;
+  S.lastTotal = unitSell * bookingData.sets;
+
+  document.getElementById('confirmBg').classList.remove('show');
+
+  window.open('https://line.me/ti/p/~@sabaijapanlotto', '_blank');
+
+  document.getElementById('mId').textContent = id;
+  document.getElementById('mPrice').textContent = 'บาท ' + (unitSell * bookingData.sets);
   document.getElementById('modalBg').classList.add('show');
   resetForm();
 }
@@ -720,7 +812,7 @@ function closeModal(){document.getElementById('modalBg').classList.remove('show'
 function shareLine(){window.open('https://line.me/R/msg/text/?'+encodeURIComponent('จองลอตเตอรี่\nID: '+S.lastId+'\nเกม: '+(GAMES[S.game]||{name:''}).name+'\nยอด: บาท '+S.lastTotal),'_blank');}
 
 function resetForm(){
-  S.game=null;S.setsData=[{mainSel:[],bonusSel:[]}];S.powerPlay=false;S.sets=1;S.drawDate='';
+  S.game=null;S.setsData=[{mainSel:[],bonusSel:[]}];S.powerPlay=false;S.sets=1;S.drawDate='';S.pendingBooking=null;
   document.querySelectorAll('.game-card').forEach(function(c){c.classList.remove('sel');});
   ['secDate','secOnline','secMethod','secSets','secPP','secAllSets','secImgs','secInfo','secSubmit'].forEach(function(id){document.getElementById(id).style.display='none';});
   document.getElementById('fName').value='';document.getElementById('fPhone').value='';document.getElementById('fNote').value='';
