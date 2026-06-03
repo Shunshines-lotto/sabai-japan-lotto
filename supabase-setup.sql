@@ -46,7 +46,7 @@ ON CONFLICT (game_key) DO NOTHING;
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 
 GRANT SELECT, UPDATE ON public.prices TO anon, authenticated;
-GRANT SELECT, INSERT, UPDATE ON public.bookings TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.bookings TO anon, authenticated;
 
 -- ── Row Level Security ─────────────────────────────────────────
 ALTER TABLE public.prices ENABLE ROW LEVEL SECURITY;
@@ -57,6 +57,7 @@ DROP POLICY IF EXISTS "anon_update_prices" ON public.prices;
 DROP POLICY IF EXISTS "anon_select_bookings" ON public.bookings;
 DROP POLICY IF EXISTS "anon_insert_bookings" ON public.bookings;
 DROP POLICY IF EXISTS "anon_update_bookings" ON public.bookings;
+DROP POLICY IF EXISTS "anon_delete_bookings" ON public.bookings;
 
 CREATE POLICY "anon_select_prices" ON public.prices
   FOR SELECT TO anon USING (true);
@@ -72,6 +73,9 @@ CREATE POLICY "anon_insert_bookings" ON public.bookings
 
 CREATE POLICY "anon_update_bookings" ON public.bookings
   FOR UPDATE TO anon USING (true) WITH CHECK (true);
+
+CREATE POLICY "anon_delete_bookings" ON public.bookings
+  FOR DELETE TO anon USING (true);
 
 -- Realtime (ปลอดภัยเมื่อรันซ้ำ — ข้ามถ้ามีในตาราง publication แล้ว)
 DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE bookings; EXCEPTION WHEN duplicate_object THEN NULL; END $$;

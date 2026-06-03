@@ -144,7 +144,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .status-tag.pending{background:var(--lav3);color:#6d28d9}
 .status-tag.confirmed{background:#d1fae5;color:#065f46}
 .status-tag.cancelled{background:#ffe4e6;color:#be123c}
-.admin-label{display:inline-block;background:linear-gradient(135deg,var(--pink),var(--lav));color:var(--white);font-family:'Mitr',sans-serif;font-size:11px;font-weight:600;padding:3px 12px;border-radius:var(--r3);margin-bottom:9px}
+.admin-label{display:inline-block;background:linear-gradient(135deg,var(--pink),var(--lav));color:var(--white);font-family:'Mitr',sans-serif;font-size:11px;font-weight:600;padding:3px 12px;border-radius:var(--r3);margin-bottom:6px}
+.admin-clock{font-size:12px;color:var(--text);margin-top:4px;font-weight:500}
+.draw-tz-note{font-size:11px;color:var(--text2);margin-top:6px;line-height:1.5;max-width:420px}
+.draw-tz-note b{color:var(--pink);font-weight:600}
 
 /* PRICE */
 .price-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
@@ -255,6 +258,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   </div>
   <div class="sbox" id="secDate" style="display:none">
     <div class="stitle">📅 งวด <span class="badge" id="drawHint"></span></div>
+    <div class="draw-tz-note">วันที่งวดตาม <b>เวลาอเมริกา (Central — Texas)</b> ไม่ใช่เวลาไทย</div>
     <div class="draw-days" id="drawDays"></div>
   </div>
   <div id="secOnline" style="display:none">
@@ -319,10 +323,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   <div class="stitle" style="margin-bottom:6px">🎮 เลือกเกม</div>
   <div class="game-filter-row" id="listGameFilter"></div>
   <div class="list-date-row" id="listDateRow">
-    <label for="listDrawDate">📅 งวด</label>
+    <label for="listDrawDate">📅 งวด (US)</label>
     <input type="date" id="listDrawDate" onchange="onListDateChange()">
   </div>
   <div class="list-filter-hint" id="listFilterHint">เลือกเกมก่อน แล้วเลือกงวดวันที่</div>
+  <div class="draw-tz-note" style="margin-bottom:10px">วันที่งวดในรายการ = ตามเวลาอเมริกา (Central — Texas)</div>
   <div style="display:flex;gap:7px;margin-bottom:8px">
     <input class="search-bar" id="searchIn" placeholder="🔍 ค้นหา..." oninput="filterList()" style="margin-bottom:0">
     <button class="bk-btn ok" style="white-space:nowrap;padding:8px 12px;border-radius:var(--r3)" onclick="loadList()" title="โหลดใหม่">🔄</button>
@@ -529,6 +534,48 @@ var ADMIN_GAME_ORDER = [
 var PINS = {1:'1567', 2:'2810'};
 var _pTarget=0, _pVal='';
 var DAY_MAP={MO:'Mon',TU:'Tue',WE:'Wed',TH:'Thu',FR:'Fri',SA:'Sat',SU:'Sun'};
+var US_DRAW_TZ='America/Chicago';
+var _adminClockTimer=null;
+
+function usChicagoTodayYMD(){
+  return new Intl.DateTimeFormat('en-CA',{timeZone:US_DRAW_TZ,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+}
+function addYMD(ymd,n){
+  var p=ymd.split('-').map(Number);
+  var d=new Date(p[0],p[1]-1,p[2]+n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function usChicagoWeekday(ymd){
+  var w=new Intl.DateTimeFormat('en-US',{timeZone:US_DRAW_TZ,weekday:'short'}).format(new Date(ymd.replace(/-/g,'/')+' 12:00:00'));
+  return {Sun:'SU',Mon:'MO',Tue:'TU',Wed:'WE',Thu:'TH',Fri:'FR',Sat:'SA'}[w]||'';
+}
+function usChicagoLabel(ymd){
+  return new Intl.DateTimeFormat('en-US',{timeZone:US_DRAW_TZ,weekday:'short',month:'short',day:'numeric'}).format(new Date(ymd.replace(/-/g,'/')+' 12:00:00'));
+}
+function formatThaiDateTime(){
+  return new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'medium',timeStyle:'medium'}).format(new Date());
+}
+function updateAdminClock(){
+  var el=document.getElementById('adminThaiClock');
+  if(el) el.textContent='🕐 ประเทศไทย: '+formatThaiDateTime();
+}
+function startAdminClock(){
+  stopAdminClock();
+  updateAdminClock();
+  _adminClockTimer=setInterval(updateAdminClock,1000);
+}
+function stopAdminClock(){
+  if(_adminClockTimer){clearInterval(_adminClockTimer);_adminClockTimer=null;}
+}
+function updateAdminHeader(){
+  if(!ADMIN.role) return;
+  var icon=ADMIN.role===1?'👑':'👔';
+  document.getElementById('adminWhoLabel').innerHTML=
+    '<span class="admin-label">'+icon+' Admin '+ADMIN.role+' Mode</span>'+
+    '<div class="admin-clock" id="adminThaiClock"></div>'+
+    '<div class="draw-tz-note">เวลาด้านบน = <b>ประเทศไทย (ICT)</b> · การเลือก<b>งวด/วันที่</b> = <b>เวลาอเมริกา (Central — Texas)</b></div>';
+  updateAdminClock();
+}
 var S = {game:null,drawDate:'',method:'random',setsData:[{mainSel:[],bonusSel:[]}],powerPlay:false,sets:1,lastId:'',lastTotal:0,pendingBooking:null};
 
 // ── INIT ────────────────────────────────────────
@@ -641,12 +688,11 @@ async function pickGame(key) {
 }
 
 function buildDrawDays(g) {
-  var days=[], today=new Date();
-  for (var d=0;d<28&&days.length<4;d++) {
-    var dt=new Date(today); dt.setDate(today.getDate()+d);
-    var dn=['SU','MO','TU','WE','TH','FR','SA'][dt.getDay()];
-    if (g.drawDays.indexOf(dn)>-1)
-      days.push({label:dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}),val:dt.toLocaleDateString('en-US')});
+  var days=[], start=usChicagoTodayYMD();
+  for (var d=0;d<60&&days.length<4;d++) {
+    var val=addYMD(start,d);
+    if (g.drawDays.indexOf(usChicagoWeekday(val))>-1)
+      days.push({label:usChicagoLabel(val),val:val});
   }
   var html='';
   days.forEach(function(d,i){
@@ -995,8 +1041,9 @@ function checkPin(){
     document.getElementById('pinBg').style.display='none';
     ADMIN.role=_pTarget;
     document.getElementById('adminNav').classList.add('show');
-    document.getElementById('adminWhoLabel').innerHTML='<span class="admin-label">👑 Admin '+_pTarget+' Mode</span>';
     if (_pTarget===1) document.getElementById('adminBar').classList.add('show');
+    updateAdminHeader();
+    startAdminClock();
     initListFilterUI();
     switchTab('list'); loadStats();
     toast('Welcome Admin '+_pTarget+' 🌸','ok');
@@ -1008,6 +1055,8 @@ function checkPin(){
 }
 function adminLogout(){
   ADMIN.role=0;
+  stopAdminClock();
+  document.getElementById('adminWhoLabel').innerHTML='';
   LIST_FILTER = { gameKey: '', drawDate: '' };
   document.getElementById('listDateRow').classList.remove('show');
   var ld = document.getElementById('listDrawDate');
