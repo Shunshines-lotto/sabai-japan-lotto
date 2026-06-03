@@ -1,5 +1,5 @@
 /**
- * Add missing Mega Millions bookings — draw 2026-06-02
+ * Fix หมี So good + เค.เอ.เค — (nX) = Megaplier ไม่ใช่จำนวนชุดซ้ำ
  * node scripts/seed-mega-missing-two.mjs
  */
 const SUPA_URL = 'https://jbxvloruouddlkovdoot.supabase.co';
@@ -11,35 +11,31 @@ const COST = 120;
 const RESULT_MAIN = [1, 19, 33, 56, 63];
 const RESULT_BONUS = 12;
 
-function set(main, bonus) {
+function setMp(main, bonus, megaplier) {
   const m = [...main].sort((a, b) => a - b);
-  return { mainSel: m, bonusSel: bonus ? [bonus] : [], mode: 'manual' };
+  return {
+    mainSel: m,
+    bonusSel: bonus ? [bonus] : [],
+    mode: 'manual',
+    megaplier: megaplier || 1,
+  };
 }
 
-function repeatSet(main, bonus, times) {
-  const s = set(main, bonus);
-  const arr = [];
-  for (let i = 0; i < times; i++) arr.push(JSON.parse(JSON.stringify(s)));
-  return arr;
-}
-
-const BOOKINGS = [
+const FIX = [
   {
     id: 'SJLMEGA046',
     name: 'หมี So good',
-    // 3 7 16 46 60 M17 (3X) = 3 ชุดเลขเดียวกัน
-    sets: repeatSet([3, 7, 16, 46, 60], 17, 3),
+    sets: [setMp([3, 7, 16, 46, 60], 17, 3)],
   },
   {
     id: 'SJLMEGA047',
     name: 'เค.เอ.เค',
-    // 5 แถว: (nX) = จำนวนชุด — M 40 (4X) ใช้ Mega Ball 4 (40 เกิน 1–25)
     sets: [
-      ...repeatSet([22, 31, 40, 45, 58], 20, 2),
-      ...repeatSet([21, 23, 40, 60, 61], 4, 5),
-      ...repeatSet([26, 32, 59, 65, 68], 4, 4),
-      ...repeatSet([18, 21, 26, 41, 51], 12, 2),
-      ...repeatSet([1, 17, 37, 42, 60], 7, 2),
+      setMp([22, 31, 40, 45, 58], 20, 2),
+      setMp([21, 23, 40, 60, 61], 4, 5),
+      setMp([26, 32, 59, 65, 68], 4, 4),
+      setMp([18, 21, 26, 41, 51], 12, 2),
+      setMp([1, 17, 37, 42, 60], 7, 2),
     ],
   },
 ];
@@ -51,13 +47,9 @@ const headers = {
   Prefer: 'return=minimal',
 };
 
-async function rest(method, path, body) {
-  const res = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok) throw new Error(`${method} ${path}: ${res.status} ${await res.text()}`);
+function getMp(sd) {
+  const m = parseInt(sd.megaplier, 10);
+  return m >= 2 && m <= 10 ? m : 1;
 }
 
 function checkPrizeMega(playerMain, playerBonus) {
@@ -81,67 +73,79 @@ function checkPrizeMega(playerMain, playerBonus) {
   return null;
 }
 
-async function recheckWinners() {
-  const res = await fetch(
+function prizeUsd(prize, sd) {
+  let usd = prize.usd || 0;
+  if (!usd || prize.label === 'Jackpot') return usd;
+  const mp = getMp(sd);
+  return mp > 1 ? usd * mp : usd;
+}
+
+async function main() {
+  for (const e of FIX) {
+    const n = e.sets.length;
+    const row = {
+      sets_data: e.sets,
+      sets_count: n,
+      total_sell: SELL * n,
+      total_cost: COST * n,
+      note: 'Megaplier (nX) per line',
+    };
+    const res = await fetch(`${SUPA_URL}/rest/v1/bookings?id=eq.${e.id}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify(row),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    console.log('PATCH', e.id, e.name, n, 'ชุด', e.sets.map((s) => getMp(s) + 'X').join(', '));
+  }
+
+  const bRes = await fetch(
     `${SUPA_URL}/rest/v1/bookings?game_key=eq.mega&draw_date=eq.${DRAW}&status=eq.confirmed&select=*`,
     { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } }
   );
-  const bookings = await res.json();
-  await rest('DELETE', `winners?game_key=eq.mega&draw_date=eq.${DRAW}`);
+  const bookings = await bRes.json();
+
+  await fetch(`${SUPA_URL}/rest/v1/winners?game_key=eq.mega&draw_date=eq.${DRAW}`, {
+    method: 'DELETE',
+    headers,
+  });
 
   let wins = 0;
   for (const b of bookings) {
     let best = null;
+    let bestSd = null;
     for (const sd of b.sets_data || []) {
       const p = checkPrizeMega(sd.mainSel || [], sd.bonusSel || []);
-      if (p && (!best || p.usd > best.usd)) best = p;
+      if (p) {
+        const usd = prizeUsd(p, sd);
+        if (usd > 0 && (!best || usd > best.usd)) {
+          best = { ...p, usd };
+          bestSd = sd;
+        }
+      }
     }
-    if (best && best.usd > 0) {
-      await rest('POST', 'winners', {
-        id: `${b.id}-mega-${DRAW}`,
-        booking_id: b.id,
-        game_key: 'mega',
-        draw_date: DRAW,
-        customer_name: b.customer_name,
-        matched_numbers: RESULT_MAIN,
-        prize_usd: best.usd,
-        prize_thb: best.usd * 32 * (b.sets_count || 1),
-        prize_level: best.label,
+    if (best) {
+      const mp = getMp(bestSd);
+      await fetch(`${SUPA_URL}/rest/v1/winners`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          id: `${b.id}-mega-${DRAW}`,
+          booking_id: b.id,
+          game_key: 'mega',
+          draw_date: DRAW,
+          customer_name: b.customer_name,
+          matched_numbers: RESULT_MAIN,
+          prize_usd: best.usd,
+          prize_thb: best.usd * 32,
+          prize_level: best.label + (mp > 1 ? ` (${mp}X)` : ''),
+        }),
       });
-      console.log('  WIN', b.customer_name, best.label, '$' + best.usd);
+      console.log('WIN', b.customer_name, best.label, '$' + best.usd, mp > 1 ? mp + 'X' : '');
       wins++;
     }
   }
-  console.log('Total winners after recheck:', wins);
-}
-
-async function main() {
-  for (const e of BOOKINGS) {
-    const n = e.sets.length;
-    const row = {
-      id: e.id,
-      customer_name: e.name,
-      customer_phone: '',
-      game_key: 'mega',
-      game_name: 'Mega Millions',
-      draw_date: DRAW,
-      sets_data: e.sets,
-      sets_count: n,
-      method: 'manual',
-      power_play: false,
-      sell_price: SELL,
-      cost_price: COST,
-      total_sell: SELL * n,
-      total_cost: COST * n,
-      note: 'seed missing rows',
-      status: 'confirmed',
-    };
-    await rest('POST', 'bookings', row);
-    console.log('OK', e.id, e.name, n, 'ชุด');
-  }
-  console.log('\nRechecking winners...');
-  await recheckWinners();
-  console.log('\nNote: เค.เอ.เค แถว "M 40 (4X)" บันทึกเป็น Mega Ball 4 (40 ไม่ใช่เลข Mega ที่ถูกต้อง)');
+  console.log('\nTotal winners:', wins);
 }
 
 main().catch((e) => {

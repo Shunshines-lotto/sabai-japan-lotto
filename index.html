@@ -440,6 +440,19 @@ const PRIZE_LEVELS = {
   ],
 };
 
+function getMegaplier(sd) {
+  var m = parseInt(sd && sd.megaplier, 10);
+  return (m >= 2 && m <= 10) ? m : 1;
+}
+
+/** Megaplier (2X–10X) คูณเงินรางวัล non-jackpot ของ Mega Millions */
+function prizeUsdWithMegaplier(prize, sd, gameKey) {
+  var usd = prize.usd || 0;
+  if (!usd || prize.label === 'Jackpot' || gameKey !== 'mega') return usd;
+  var mp = getMegaplier(sd);
+  return mp > 1 ? usd * mp : usd;
+}
+
 function checkPrize(gameKey, playerMain, playerBonus, resultMain, resultBonus, jackpotUsd) {
   var matchMain = playerMain.filter(function(n) { return resultMain.indexOf(n) > -1; }).length;
   var matchBonus = playerBonus.length > 0 && resultBonus && playerBonus[0] === resultBonus;
@@ -847,6 +860,7 @@ function showConfirm(bookingData) {
         html += '<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--peach),#ff6b47);color:#fff;display:flex;align-items:center;justify-content:center;font-family:Itim,cursive;font-size:12px;font-weight:700">' + (n<10?'0':'') + n + '</div>';
       });
     }
+    if (getMegaplier(sd) > 1) html += '<span style="font-size:11px;color:var(--lav);font-weight:600;margin-left:6px">Megaplier ' + getMegaplier(sd) + 'X</span>';
     html += '</div></div>';
   });
 
@@ -1018,6 +1032,7 @@ function renderList(list){
       if(si>0) balls+='<div style="width:100%;height:1px;background:var(--pink3);margin:3px 0"></div>';
       (sd.mainSel||[]).forEach(function(n){balls+='<div class="bk-ball m">'+(n<10?'0':'')+n+'</div>';});
       if((sd.bonusSel||[]).length){balls+='<div style="font-size:12px;color:var(--pink2)">+</div>';(sd.bonusSel||[]).forEach(function(n){balls+='<div class="bk-ball b">'+(n<10?'0':'')+n+'</div>';});}
+      if(getMegaplier(sd)>1) balls+='<span style="font-size:10px;color:var(--lav);font-weight:600;margin-left:4px">'+getMegaplier(sd)+'X</span>';
     });
     html+='<div class="bk-card">';
     if(isA1){
@@ -1587,11 +1602,21 @@ async function checkAllWinners(gameKey, drawDate, resultMain, resultBonus, jackp
     for (var j = 0; j < setsData.length; j++) {
       var sd = setsData[j];
       var prize = checkPrize(gameKey, sd.mainSel || [], sd.bonusSel || [], resultMain, resultBonus, jackpotUsd);
-      if (prize && (!bestPrize || prize.usd > bestPrize.usd)) bestPrize = prize;
+      if (prize) {
+        var usd = prizeUsdWithMegaplier(prize, sd, gameKey);
+        if (usd > 0 && (!bestPrize || usd > bestPrize.usd)) {
+          bestPrize = {
+            label: prize.label,
+            usd: usd,
+            megaplier: gameKey === 'mega' ? getMegaplier(sd) : 1
+          };
+        }
+      }
     }
 
     if (bestPrize && bestPrize.usd > 0) {
-      var prizeThb = bestPrize.usd * USD_TO_THB * (b.sets_count || 1);
+      var prizeThb = bestPrize.usd * USD_TO_THB;
+      var levelLabel = bestPrize.label + (bestPrize.megaplier > 1 ? ' (' + bestPrize.megaplier + 'X)' : '');
       await sb.from('winners').insert({
         id: b.id + '-' + gameKey + '-' + drawDate,
         booking_id: b.id,
@@ -1601,7 +1626,7 @@ async function checkAllWinners(gameKey, drawDate, resultMain, resultBonus, jackp
         matched_numbers: resultMain,
         prize_usd: bestPrize.usd,
         prize_thb: prizeThb,
-        prize_level: bestPrize.label
+        prize_level: levelLabel
       });
       winnerCount++;
     }
