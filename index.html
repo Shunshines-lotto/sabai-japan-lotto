@@ -196,6 +196,17 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .empty{text-align:center;padding:40px 16px;color:var(--text2)}
 .search-bar{width:100%;background:var(--white);border:2px solid var(--pink3);border-radius:var(--r3);padding:8px 13px;color:var(--text);font-family:'Noto Sans Thai','Mitr',sans-serif;font-size:13px;outline:none;margin-bottom:11px;transition:border-color .2s}
 .search-bar:focus{border-color:var(--pink)}
+.game-filter-row{display:flex;gap:7px;overflow-x:auto;padding:2px 0 10px;margin-bottom:6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.game-filter-row::-webkit-scrollbar{display:none}
+.game-filter-pill{flex:0 0 auto;padding:9px 14px;border:2px solid var(--pink3);background:var(--white);border-radius:var(--r3);color:var(--text2);font-family:'Mitr',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap}
+.game-filter-pill:hover{border-color:var(--pink2);color:var(--pink)}
+.game-filter-pill.active{background:linear-gradient(135deg,var(--pink),var(--lav));border-color:transparent;color:var(--white);box-shadow:0 3px 12px var(--shadow)}
+.list-date-row{display:none;align-items:center;gap:10px;margin-bottom:10px;padding:10px 12px;background:var(--white);border:2px solid var(--pink3);border-radius:var(--r)}
+.list-date-row.show{display:flex}
+.list-date-row label{font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap}
+.list-date-row input[type=date]{flex:1;border:2px solid var(--pink3);border-radius:var(--r2);padding:8px 10px;font-family:'Noto Sans Thai','Mitr',sans-serif;font-size:13px;color:var(--text);background:var(--cream);outline:none}
+.list-date-row input[type=date]:focus{border-color:var(--pink);background:var(--white)}
+.list-filter-hint{font-size:12px;color:var(--text2);margin-bottom:8px;min-height:18px}
 @media(max-width:480px){.form-row{grid-template-columns:1fr}.nb{width:30px;height:30px;font-size:10px}.price-grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -305,12 +316,18 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <div class="panel" id="panel-list">
 <div class="wrap" style="padding-top:12px">
   <div id="adminWhoLabel"></div>
-  <div style="display:flex;gap:7px;margin-bottom:4px">
-    <input class="search-bar" id="searchIn" placeholder="🔍 ค้นหา..." oninput="filterList()" style="margin-bottom:0">
-    <button class="bk-btn ok" style="white-space:nowrap;padding:8px 12px;border-radius:var(--r3)" onclick="loadList()">🔄</button>
+  <div class="stitle" style="margin-bottom:6px">🎮 เลือกเกม</div>
+  <div class="game-filter-row" id="listGameFilter"></div>
+  <div class="list-date-row" id="listDateRow">
+    <label for="listDrawDate">📅 งวด</label>
+    <input type="date" id="listDrawDate" onchange="onListDateChange()">
   </div>
-  <div id="latestLabel" style="font-size:12px;color:var(--text2);margin:6px 0 4px;display:none"></div>
-  <div id="listWrap"><div class="empty">กด 🔄 เพื่อโหลด</div></div>
+  <div class="list-filter-hint" id="listFilterHint">เลือกเกมก่อน แล้วเลือกงวดวันที่</div>
+  <div style="display:flex;gap:7px;margin-bottom:8px">
+    <input class="search-bar" id="searchIn" placeholder="🔍 ค้นหา..." oninput="filterList()" style="margin-bottom:0">
+    <button class="bk-btn ok" style="white-space:nowrap;padding:8px 12px;border-radius:var(--r3)" onclick="loadList()" title="โหลดใหม่">🔄</button>
+  </div>
+  <div id="listWrap"><div class="empty">เลือกเกมและงวดวันที่</div></div>
 </div>
 </div>
 
@@ -501,6 +518,14 @@ const GAMES = {
 var PRICES = {};
 var _lastDbError = null;
 var ADMIN = {role:0};
+var LIST_FILTER = { gameKey: '', drawDate: '' };
+var ADMIN_GAME_ORDER = [
+  { key: 'powerball', label: 'Power Ball' },
+  { key: 'mega', label: 'Mega' },
+  { key: 'allornothing', label: 'All or Nothing' },
+  { key: 'txlotto', label: 'TX Lotto' },
+  { key: 'txtwostep', label: 'Two Step' }
+];
 var PINS = {1:'1567', 2:'2810'};
 var _pTarget=0, _pVal='';
 var DAY_MAP={MO:'Mon',TU:'Tue',WE:'Wed',TH:'Thu',FR:'Fri',SA:'Sat',SU:'Sun'};
@@ -524,7 +549,7 @@ async function init() {
       { event: '*', schema: 'public', table: 'bookings' },
       function(payload) {
         if (ADMIN.role > 0) {
-          loadList();
+          if (LIST_FILTER.gameKey && LIST_FILTER.drawDate) loadList();
           loadStats();
         }
       }
@@ -972,6 +997,7 @@ function checkPin(){
     document.getElementById('adminNav').classList.add('show');
     document.getElementById('adminWhoLabel').innerHTML='<span class="admin-label">👑 Admin '+_pTarget+' Mode</span>';
     if (_pTarget===1) document.getElementById('adminBar').classList.add('show');
+    initListFilterUI();
     switchTab('list'); loadStats();
     toast('Welcome Admin '+_pTarget+' 🌸','ok');
   } else {
@@ -982,6 +1008,12 @@ function checkPin(){
 }
 function adminLogout(){
   ADMIN.role=0;
+  LIST_FILTER = { gameKey: '', drawDate: '' };
+  document.getElementById('listDateRow').classList.remove('show');
+  var ld = document.getElementById('listDrawDate');
+  if (ld) ld.value = '';
+  document.querySelectorAll('.game-filter-pill').forEach(function(el){ el.classList.remove('active'); });
+  updateListFilterHint();
   document.getElementById('adminBar').classList.remove('show');
   document.getElementById('adminNav').classList.remove('show');
   document.getElementById('panel-book').classList.add('active');
@@ -999,29 +1031,97 @@ function switchTab(t){
   document.querySelectorAll('.nav-btn:not(.logout)').forEach(function(b){b.classList.remove('active');});
   var nb=document.getElementById('nav'+t.charAt(0).toUpperCase()+t.slice(1));
   if(nb) nb.classList.add('active');
-  if(t==='list') loadList();
+  if(t==='list'){ initListFilterUI(); refreshListView(); }
   if(t==='price') loadPricePanel();
   if(t==='result') loadResultPanel();
 }
 
 // ── LIST ────────────────────────────────────────
 var _bks=[];
-async function loadList(){
-  document.getElementById('listWrap').innerHTML='<div class="empty">⏳</div>';
-  var query = sb.from('bookings').select('*').order('created_at',{ascending:false});
-  if (ADMIN.role===2) {
-    // Admin2: latest draw date only
-    var {data:all} = await sb.from('bookings').select('draw_date').order('draw_date',{ascending:false}).limit(1);
-    var latest = all&&all.length ? all[0].draw_date : '';
-    if (latest) {
-      document.getElementById('latestLabel').textContent='📅 งวดล่าสุด: '+latest;
-      document.getElementById('latestLabel').style.display='block';
-      query = sb.from('bookings').select('*').eq('draw_date',latest).order('created_at',{ascending:false});
-    }
-  } else {
-    document.getElementById('latestLabel').style.display='none';
+
+function initListFilterUI() {
+  var row = document.getElementById('listGameFilter');
+  if (!row || row.dataset.built) return;
+  var html = '';
+  ADMIN_GAME_ORDER.forEach(function(g) {
+    html += '<button type="button" class="game-filter-pill" data-gk="' + g.key + '" onclick="selectListGame(\'' + g.key + '\')">' + g.label + '</button>';
+  });
+  row.innerHTML = html;
+  row.dataset.built = '1';
+}
+
+function getListGameLabel(key) {
+  var found = ADMIN_GAME_ORDER.find(function(g) { return g.key === key; });
+  return found ? found.label : key;
+}
+
+function updateListFilterHint() {
+  var el = document.getElementById('listFilterHint');
+  if (!el) return;
+  if (!LIST_FILTER.gameKey) {
+    el.textContent = 'เลือกเกมก่อน แล้วเลือกงวดวันที่';
+    return;
   }
-  var {data} = await query.limit(200);
+  if (!LIST_FILTER.drawDate) {
+    el.textContent = getListGameLabel(LIST_FILTER.gameKey) + ' — เลือกงวดวันที่ด้านบน';
+    return;
+  }
+  el.textContent = '📋 ' + getListGameLabel(LIST_FILTER.gameKey) + ' · งวด ' + LIST_FILTER.drawDate;
+}
+
+function selectListGame(key) {
+  LIST_FILTER.gameKey = key;
+  LIST_FILTER.drawDate = '';
+  var dateInp = document.getElementById('listDrawDate');
+  if (dateInp) dateInp.value = '';
+  document.querySelectorAll('.game-filter-pill').forEach(function(el) {
+    el.classList.toggle('active', el.dataset.gk === key);
+  });
+  document.getElementById('listDateRow').classList.add('show');
+  updateListFilterHint();
+  refreshListView();
+}
+
+function onListDateChange() {
+  var dateInp = document.getElementById('listDrawDate');
+  LIST_FILTER.drawDate = dateInp ? dateInp.value : '';
+  updateListFilterHint();
+  if (LIST_FILTER.gameKey && LIST_FILTER.drawDate) loadList();
+  else refreshListView();
+}
+
+function refreshListView() {
+  if (!LIST_FILTER.gameKey) {
+    document.getElementById('listWrap').innerHTML = '<div class="empty">🎮 เลือกเกมด้านบน</div>';
+    _bks = [];
+    return;
+  }
+  if (!LIST_FILTER.drawDate) {
+    document.getElementById('listWrap').innerHTML = '<div class="empty">📅 เลือกงวดวันที่</div>';
+    _bks = [];
+    return;
+  }
+  loadList();
+}
+
+async function loadList(){
+  initListFilterUI();
+  if (!LIST_FILTER.gameKey || !LIST_FILTER.drawDate) {
+    refreshListView();
+    return;
+  }
+  document.getElementById('listWrap').innerHTML='<div class="empty">⏳</div>';
+  var {data, error} = await sb.from('bookings')
+    .select('*')
+    .eq('game_key', LIST_FILTER.gameKey)
+    .eq('draw_date', LIST_FILTER.drawDate)
+    .order('created_at',{ascending:false})
+    .limit(500);
+  if (error) {
+    document.getElementById('listWrap').innerHTML='<div class="empty">โหลดไม่สำเร็จ</div>';
+    toast(dbErrMsg(error),'err');
+    return;
+  }
   _bks = data||[];
   filterList();
 }
