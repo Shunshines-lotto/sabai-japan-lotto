@@ -172,6 +172,14 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 /* MODAL */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(92,58,78,.4);backdrop-filter:blur(7px);z-index:1000;align-items:center;justify-content:center}
 .modal-bg.show{display:flex}
+.ticket-modal-bg{z-index:1100}
+.ticket-modal{max-width:min(96vw,520px);width:96%;max-height:90vh;overflow-y:auto;text-align:left;padding:18px}
+.ticket-modal img{width:100%;border-radius:12px;border:2px solid var(--pink3);margin-bottom:10px}
+.ticket-modal-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.ticket-thumb-btn{cursor:pointer;border:none;padding:0;background:none}
+.ticket-thumb-btn img{transition:transform .15s}
+.ticket-thumb-btn:hover img{transform:scale(1.05)}
+.upload-mode-row{margin:10px 0 4px}
 .modal{background:var(--white);border-radius:22px;padding:26px 22px;max-width:330px;width:90%;text-align:center;box-shadow:0 16px 52px rgba(255,139,171,.3);border:2px solid var(--pink3);animation:pop .38s cubic-bezier(.34,1.56,.64,1)}
 @keyframes pop{from{transform:scale(.72);opacity:0}to{transform:scale(1);opacity:1}}
 .modal-anim{font-size:54px;margin-bottom:7px;animation:wiggle .9s ease infinite}
@@ -365,6 +373,18 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
       <button onclick="closeConfirm()" style="flex:1;padding:12px;background:var(--cream);border:2px solid var(--pink3);border-radius:var(--r3);color:var(--text2);font-family:Mitr,sans-serif;font-size:13px;font-weight:600;cursor:pointer">← แก้ไข</button>
       <button onclick="doPayment()" style="flex:2;padding:12px;background:linear-gradient(135deg,#00b900,#00d400);border:none;border-radius:var(--r3);color:#fff;font-family:Mitr,sans-serif;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(0,185,0,.3)">💬 ชำระเงินผ่าน LINE</button>
     </div>
+  </div>
+</div>
+
+<!-- TICKET IMAGE MODAL (Admin 1) -->
+<div class="modal-bg ticket-modal-bg" id="ticketModalBg" onclick="if(event.target===this)closeTicketModal()">
+  <div class="modal ticket-modal" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="modal-title" style="margin:0;font-size:17px" id="ticketModalTitle">ใบลอตเตอรี่</div>
+      <button type="button" onclick="closeTicketModal()" style="background:var(--cream);border:2px solid var(--pink3);border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px">✕</button>
+    </div>
+    <div id="ticketModalBody"></div>
+    <div class="ticket-modal-actions" id="ticketModalActions"></div>
   </div>
 </div>
 
@@ -1315,6 +1335,12 @@ async function loadPricePanel(){
     html+='<option value="allornothing">All or Nothing (A)</option>';
     html+='</select></div>';
     html+='</div>';
+    html+='<div class="upload-mode-row">';
+    html+='<div class="stitle" style="margin-bottom:8px">📂 ประเภทการอัพโหลด</div>';
+    html+='<div class="method-row">';
+    html+='<div class="mpill active" id="uploadModeAuto" style="flex:1;cursor:pointer" onclick="setUploadMode(\'auto\')">📋 รายการเลือกเลข<br><span style="font-size:10px;font-weight:400">ผูกอัตโนมัติตามเลขในไฟล์</span></div>';
+    html+='<div class="mpill" id="uploadModeRandom" style="flex:1;cursor:pointer" onclick="setUploadMode(\'random\')">🎲 ใบสุ่ม<br><span style="font-size:10px;font-weight:400">เลือกรายการจองเอง</span></div>';
+    html+='</div></div>';
     html+='<div id="uploadDropArea" style="border:2px dashed var(--pink2);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;background:var(--cream);margin-top:10px;transition:all .2s" onclick="document.getElementById(\'ticketFileInput\').click()" ondragover="event.preventDefault();this.style.borderColor=\'var(--pink)\'" ondragleave="this.style.borderColor=\'var(--pink2)\'" ondrop="handleTicketDrop(event)">';
     html+='<input type="file" id="ticketFileInput" accept="image/*" multiple style="display:none" onchange="handleTicketFiles(this.files)">';
     html+='<div style="font-size:32px;margin-bottom:6px">🎟️</div>';
@@ -1324,9 +1350,10 @@ async function loadPricePanel(){
     html+='<div id="uploadPreviewArea" style="margin-top:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>';
     html+='<div id="uploadProgress" style="margin-top:8px;font-size:12px;color:var(--text2)"></div>';
     html+='<button class="btn-save-price" onclick="uploadTickets()" style="margin-top:10px">📤 อัพโหลดรูป</button>';
+    html+='<button class="btn-save-price" onclick="runAutoMatchAll()" style="margin-top:8px;background:linear-gradient(135deg,var(--lav),var(--sky))">🔗 ผูกอัตโนมัติทั้งหมด (เลือกเลข)</button>';
     html+='<div class="section-hd" style="margin-top:14px">🖼️ รูปที่อัพโหลดแล้ว</div>';
     html+='<div id="assignSummary" style="font-size:11px;color:var(--text2);margin-bottom:8px"></div>';
-    html+='<div style="font-size:11px;color:var(--text3);margin-bottom:6px">เลือกรายการจองใต้แต่ละรูป (หนึ่งรูปต่อหนึ่ง ID)</div>';
+    html+='<div id="uploadModeHint" style="font-size:11px;color:var(--text2);margin-bottom:6px">โหมดเลือกเลข: ตั้งชื่อไฟล์ให้มีเลขตรงกับใบจอง (เช่น 14-28-46-48-57-17) จะผูกอัตโนมัติ · ใบสุ่มใช้โหมดใบสุ่ม</div>';
     html+='<div id="galleryArea"></div>';
     html+='</div>';
 
@@ -1347,7 +1374,20 @@ async function loadPricePanel(){
     html+='<button class="btn-save-price" onclick="saveCostPrices()">💾 บันทึกราคาทุน</button>';
   }
   el.innerHTML=html;
-  if (!isA1) loadTicketGallery();
+  if (!isA1) {
+    setUploadMode('auto');
+    loadTicketGallery();
+  }
+}
+
+async function runAutoMatchAll() {
+  var drawDate = document.getElementById('uploadDrawDate') ? document.getElementById('uploadDrawDate').value : '';
+  var gameKey = document.getElementById('uploadGameKey') ? document.getElementById('uploadGameKey').value : '';
+  if (!drawDate || !gameKey) { toast('เลือกงวดและเกมก่อน', 'err'); return; }
+  var n = await autoMatchTicketImages(gameKey, drawDate);
+  toast(n ? 'ผูกอัตโนมัติ ' + n + ' รูป 🌸' : 'ไม่พบเลขที่ตรงหรือผูกครบแล้ว', n ? 'ok' : 'err');
+  loadTicketGallery();
+  refreshAllBookingImages();
 }
 
 async function saveSellPrices(){
@@ -1375,6 +1415,138 @@ async function saveCostPrices(){
 
 // ── TICKET IMAGES (Admin 2 upload / Admin 1 view) ──
 var _ticketFiles = [];
+var _uploadMode = 'auto';
+var _bookingImageCache = {};
+
+function setUploadMode(mode) {
+  _uploadMode = mode === 'random' ? 'random' : 'auto';
+  var a = document.getElementById('uploadModeAuto');
+  var r = document.getElementById('uploadModeRandom');
+  if (a) a.classList.toggle('active', _uploadMode === 'auto');
+  if (r) r.classList.toggle('active', _uploadMode === 'random');
+  var hint = document.getElementById('uploadModeHint');
+  if (hint) {
+    hint.textContent = _uploadMode === 'auto'
+      ? 'โหมดเลือกเลข: ตั้งชื่อไฟล์ให้มีเลขตรงกับใบจอง (เช่น 14-28-46-48-57-17) จะผูกอัตโนมัติ · ใบสุ่มใช้โหมดใบสุ่ม'
+      : 'โหมดใบสุ่ม: อัพโหลดแล้วเลือกรายการจองใบสุ่มจากรายการด้านล่าง';
+  }
+  loadTicketGallery();
+}
+
+function isSetRandom(sd, booking) {
+  if (sd && sd.mode === 'manual') return false;
+  if (sd && sd.mode === 'random') return true;
+  return (booking.method || 'random') === 'random';
+}
+
+function isRandomBooking(booking) {
+  var sets = booking.sets_data || [];
+  if (!sets.length) return booking.method === 'random';
+  return sets.some(function(sd) { return isSetRandom(sd, booking); });
+}
+
+function setSignature(gameKey, mainSel, bonusSel) {
+  var g = GAMES[gameKey] || {};
+  var main = (mainSel || []).slice().sort(function(a, b) { return a - b; });
+  var sig = main.join('-');
+  if ((g.bonusCount || 0) > 0 && bonusSel && bonusSel.length) sig += '+' + bonusSel[0];
+  return sig;
+}
+
+function numbersFromFilename(name, gameKey) {
+  var g = GAMES[gameKey];
+  if (!g) return null;
+  var nums = (String(name).match(/\d+/g) || []).map(function(n) { return parseInt(n, 10); }).filter(function(n) { return !isNaN(n) && n > 0; });
+  if (!nums.length) return null;
+  var need = g.mainCount + (g.bonusCount || 0);
+  if (nums.length < need) return null;
+  var main, bonus = [];
+  if (g.bonusCount > 0) {
+    if (nums.length === need) {
+      main = nums.slice(0, g.mainCount).sort(function(a, b) { return a - b; });
+      bonus = [nums[g.mainCount]];
+    } else {
+      bonus = [nums[nums.length - 1]];
+      main = nums.slice(0, nums.length - 1).sort(function(a, b) { return a - b; }).slice(-g.mainCount);
+    }
+  } else {
+    main = nums.length === g.mainCount
+      ? nums.slice().sort(function(a, b) { return a - b; })
+      : nums.slice(-g.mainCount).sort(function(a, b) { return a - b; });
+  }
+  if (main.length !== g.mainCount) return null;
+  return { main: main, bonus: bonus };
+}
+
+function getManualSetSlots(bookings, gameKey) {
+  var slots = [];
+  (bookings || []).forEach(function(b) {
+    if (b.status === 'cancelled') return;
+    (b.sets_data || []).forEach(function(sd, idx) {
+      if (isSetRandom(sd, b)) return;
+      var main = sd.mainSel || [];
+      if (!main.length) return;
+      slots.push({
+        bookingId: b.id,
+        setIndex: idx,
+        signature: setSignature(gameKey, main, sd.bonusSel || []),
+        label: (b.customer_name || b.id) + ' · แถว ' + (idx + 1) + ' · ' + setSignature(gameKey, main, sd.bonusSel || [])
+      });
+    });
+  });
+  return slots;
+}
+
+function slotKey(bookingId, setIndex) {
+  return bookingId + '|' + setIndex;
+}
+
+async function autoMatchTicketImages(gameKey, drawDate) {
+  var [{ data: images }, { data: bookings }] = await Promise.all([
+    sb.from('lottery_images').select('*').eq('game_key', gameKey).eq('draw_date', drawDate).is('booking_id', null),
+    sb.from('bookings').select('*').eq('game_key', gameKey).eq('draw_date', drawDate).neq('status', 'cancelled')
+  ]);
+  if (!images || !images.length) return 0;
+
+  var { data: linked } = await sb.from('lottery_images')
+    .select('booking_id,set_index')
+    .eq('game_key', gameKey)
+    .eq('draw_date', drawDate)
+    .not('booking_id', 'is', null);
+
+  var taken = {};
+  (linked || []).forEach(function(img) {
+    if (img.booking_id != null && img.set_index != null) taken[slotKey(img.booking_id, img.set_index)] = true;
+  });
+
+  var slots = getManualSetSlots(bookings || [], gameKey);
+  var slotBySig = {};
+  slots.forEach(function(s) {
+    if (!taken[slotKey(s.bookingId, s.setIndex)]) slotBySig[s.signature] = s;
+  });
+
+  var matched = 0;
+  for (var i = 0; i < images.length; i++) {
+    var img = images[i];
+    var src = img.source_filename || img.file_name || '';
+    var parsed = numbersFromFilename(src, gameKey);
+    if (!parsed) continue;
+    var sig = setSignature(gameKey, parsed.main, parsed.bonus);
+    var slot = slotBySig[sig];
+    if (!slot) continue;
+    var { error } = await sb.from('lottery_images').update({
+      booking_id: slot.bookingId,
+      set_index: slot.setIndex,
+      number_signature: sig
+    }).eq('id', img.id);
+    if (!error) {
+      matched++;
+      taken[slotKey(slot.bookingId, slot.setIndex)] = true;
+      delete slotBySig[sig];
+    }
+  }
+  return matched;
+}
 
 function handleTicketDrop(event) {
   event.preventDefault();
@@ -1447,6 +1619,9 @@ async function uploadTickets() {
     var {data: urlData} = sb.storage.from('lottery-tickets').getPublicUrl(storagePath);
     var publicUrl = urlData.publicUrl;
 
+    var parsed = _uploadMode === 'auto' ? numbersFromFilename(file.name, gameKey) : null;
+    var sig = parsed ? setSignature(gameKey, parsed.main, parsed.bonus) : null;
+
     await sb.from('lottery_images').insert({
       id: ticketName + '-' + drawDate + '-' + Date.now() + '-' + i,
       game_key: gameKey,
@@ -1454,19 +1629,26 @@ async function uploadTickets() {
       file_name: ticketName,
       storage_path: storagePath,
       public_url: publicUrl,
-      booking_id: null
+      booking_id: null,
+      set_index: null,
+      source_filename: file.name,
+      number_signature: sig
     });
 
     uploaded++;
     progress.textContent = 'กำลังอัพโหลด ' + uploaded + '/' + _ticketFiles.length + '...';
   }
 
-  progress.textContent = '✅ อัพโหลดสำเร็จ ' + uploaded + ' รูป!';
+  var autoN = 0;
+  if (_uploadMode === 'auto') autoN = await autoMatchTicketImages(gameKey, drawDate);
+
+  progress.textContent = '✅ อัพโหลดสำเร็จ ' + uploaded + ' รูป!' + (autoN ? ' · ผูกอัตโนมัติ ' + autoN + ' รูป' : '');
   progress.style.color = 'var(--mint)';
   _ticketFiles = [];
   document.getElementById('uploadPreviewArea').innerHTML = '';
-  toast('อัพโหลดสำเร็จ ' + uploaded + ' รูป 🌸', 'ok');
+  toast('อัพโหลด ' + uploaded + ' รูป' + (autoN ? ' · ผูกอัตโนมัติ ' + autoN : '') + ' 🌸', 'ok');
   loadTicketGallery();
+  refreshAllBookingImages();
 }
 
 function escAttr(s) {
@@ -1488,7 +1670,7 @@ async function loadTicketGallery() {
 
   var [{ data: images }, { data: bookings }] = await Promise.all([
     sb.from('lottery_images').select('*').eq('game_key', gameKey).eq('draw_date', drawDate).order('file_name', { ascending: true }),
-    sb.from('bookings').select('id,customer_name,sets_count,status').eq('game_key', gameKey).eq('draw_date', drawDate).neq('status', 'cancelled').order('created_at', { ascending: true })
+    sb.from('bookings').select('id,customer_name,sets_count,status,method,sets_data').eq('game_key', gameKey).eq('draw_date', drawDate).neq('status', 'cancelled').order('created_at', { ascending: true })
   ]);
 
   bookings = bookings || [];
@@ -1514,21 +1696,39 @@ async function loadTicketGallery() {
     html += '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(255,139,171,.9);color:#fff;font-size:10px;text-align:center;padding:3px;font-family:Itim,cursive">' + escAttr(img.file_name) + (linked ? ' ✓' : '') + '</div>';
     html += '<button type="button" data-id="' + escAttr(img.id) + '" onclick="deleteTicket(this.dataset.id)" style="position:absolute;top:4px;right:4px;background:#ef4444;border:none;border-radius:50%;width:20px;height:20px;color:#fff;font-size:11px;cursor:pointer">✕</button>';
     html += '</div>';
-    html += '<label style="font-size:10px;color:var(--text2);display:block;margin-bottom:3px">ผูกกับรายการจอง</label>';
-    html += '<select class="price-inp assign-ticket-sel" data-img-id="' + escAttr(img.id) + '" style="width:100%;font-size:11px;padding:6px 8px;text-align:left" onchange="assignTicket(this.dataset.imgId, this.value)">';
-    html += '<option value="">— ยังไม่ผูก —</option>';
-    bookings.forEach(function(b) {
-      var label = b.id + ' · ' + (b.customer_name || '-') + ' (' + (b.sets_count || 1) + ' แถว)';
-      var sel = img.booking_id === b.id ? ' selected' : '';
-      html += '<option value="' + escAttr(b.id) + '"' + sel + '>' + escAttr(label) + '</option>';
-    });
-    if (!bookings.length) {
-      html += '<option value="" disabled>ไม่มีรายการจองงวดนี้</option>';
-    }
-    html += '</select>';
     if (linked) {
       var bk = bookings.find(function(b) { return b.id === img.booking_id; });
-      html += '<div style="font-size:10px;color:var(--mint);margin-top:4px">✓ ' + escAttr(bk ? (bk.customer_name || img.booking_id) : img.booking_id) + '</div>';
+      var rowLbl = img.set_index != null ? ' แถว ' + (img.set_index + 1) : '';
+      html += '<div style="font-size:10px;color:var(--mint);margin-top:4px">✓ ' + escAttr((bk ? bk.customer_name : img.booking_id) + rowLbl) + '</div>';
+      if (img.number_signature) html += '<div style="font-size:9px;color:var(--text3)">' + escAttr(img.number_signature) + '</div>';
+    }
+    var showAssign = !linked || _uploadMode === 'random';
+    if (showAssign && _uploadMode === 'random') {
+      html += '<label style="font-size:10px;color:var(--text2);display:block;margin-bottom:3px;margin-top:6px">ผูกใบสุ่ม (เลือกรายการ)</label>';
+      html += '<select class="price-inp assign-ticket-sel" data-img-id="' + escAttr(img.id) + '" style="width:100%;font-size:11px;padding:6px 8px;text-align:left" onchange="assignTicket(this.dataset.imgId, this.value)">';
+      html += '<option value="">— ยังไม่ผูก —</option>';
+      bookings.filter(isRandomBooking).forEach(function(b) {
+        var sets = b.sets_data || [];
+        if (!sets.length) {
+          var val0 = b.id + '|0';
+          var sel0 = img.booking_id === b.id && (img.set_index === 0 || img.set_index == null) ? ' selected' : '';
+          html += '<option value="' + escAttr(val0) + '"' + sel0 + '>' + escAttr(b.id + ' · ' + (b.customer_name || '-') + ' 🎲') + '</option>';
+          return;
+        }
+        sets.forEach(function(sd, idx) {
+          if (!isSetRandom(sd, b)) return;
+          var val = b.id + '|' + idx;
+          var sel = img.booking_id === b.id && img.set_index === idx ? ' selected' : '';
+          html += '<option value="' + escAttr(val) + '"' + sel + '>' + escAttr(b.id + ' · ' + (b.customer_name || '-') + ' · แถว ' + (idx + 1) + ' 🎲') + '</option>';
+        });
+      });
+      if (!bookings.filter(isRandomBooking).length) {
+        html += '<option value="" disabled>ไม่มีรายการจองแบบสุ่ม</option>';
+      }
+      html += '</select>';
+    } else if (!linked && _uploadMode === 'auto') {
+      html += '<div style="font-size:10px;color:var(--text3);margin-top:6px">ยังไม่ผูก — ตั้งชื่อไฟล์ให้ตรงเลข หรือกดผูกอัตโนมัติ</div>';
+      html += '<button type="button" class="bk-btn ok" style="margin-top:6px;width:100%" onclick="retryAutoMatchOne(\'' + escAttr(img.id) + '\')">🔗 ลองผูกอัตโนมัติ</button>';
     }
     html += '</div>';
   });
@@ -1536,15 +1736,35 @@ async function loadTicketGallery() {
   area.innerHTML = html;
 }
 
-async function assignTicket(imageId, bookingId) {
-  var val = bookingId || null;
-  var {error} = await sb.from('lottery_images').update({ booking_id: val }).eq('id', imageId);
+async function retryAutoMatchOne(imageId) {
+  var drawDate = document.getElementById('uploadDrawDate').value;
+  var gameKey = document.getElementById('uploadGameKey').value;
+  var n = await autoMatchTicketImages(gameKey, drawDate);
+  toast(n ? 'ผูกอัตโนมัติ ' + n + ' รูป 🌸' : 'ไม่พบเลขที่ตรงกัน', n ? 'ok' : 'err');
+  loadTicketGallery();
+  refreshAllBookingImages();
+}
+
+async function assignTicket(imageId, value) {
+  var bookingId = null;
+  var setIndex = null;
+  if (value) {
+    var parts = String(value).split('|');
+    bookingId = parts[0];
+    setIndex = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+    if (isNaN(setIndex)) setIndex = 0;
+  }
+  var { error } = await sb.from('lottery_images').update({
+    booking_id: bookingId,
+    set_index: bookingId ? setIndex : null,
+    number_signature: null
+  }).eq('id', imageId);
   if (error) {
     toast('ผูกรูปไม่สำเร็จ: ' + dbErrMsg(error), 'err');
     loadTicketGallery();
     return;
   }
-  toast(val ? 'ผูกรูปกับ ' + val + ' แล้ว 🌸' : 'ยกเลิกการผูกแล้ว', 'ok');
+  toast(bookingId ? 'ผูกรูปแล้ว 🌸' : 'ยกเลิกการผูกแล้ว', 'ok');
   loadTicketGallery();
   refreshAllBookingImages();
 }
@@ -1568,22 +1788,108 @@ async function deleteTicket(id) {
   loadTicketGallery();
 }
 
+function downloadImageUrl(url, filename) {
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename || 'ticket.jpg';
+  a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+async function downloadAllBookingImages(bookingId) {
+  var imgs = _bookingImageCache[bookingId];
+  if (!imgs || !imgs.length) {
+    toast('ไม่มีรูปให้ดาวน์โหลด', 'err');
+    return;
+  }
+  for (var i = 0; i < imgs.length; i++) {
+    var img = imgs[i];
+    var name = (img.file_name || 'ticket') + (img.source_filename && img.source_filename.indexOf('.') > -1
+      ? img.source_filename.slice(img.source_filename.lastIndexOf('.')) : '.jpg');
+    downloadImageUrl(img.public_url, name);
+    await new Promise(function(r) { setTimeout(r, 350); });
+  }
+  toast('ดาวน์โหลด ' + imgs.length + ' รูปแล้ว', 'ok');
+}
+
+function openTicketModal(bookingId, startIndex) {
+  var imgs = _bookingImageCache[bookingId];
+  if (!imgs || !imgs.length) return;
+  var idx = startIndex || 0;
+  var img = imgs[idx];
+  var b = _bks.find(function(x) { return x.id === bookingId; });
+  document.getElementById('ticketModalTitle').textContent = (b ? b.customer_name : bookingId) + ' · ' + img.file_name;
+  var row = img.set_index != null ? 'แถว ' + (img.set_index + 1) : '';
+  var body = '<div style="font-size:11px;color:var(--text2);margin-bottom:8px">' + escAttr(bookingId) + (row ? ' · ' + row : '') + '</div>';
+  body += '<img src="' + escAttr(img.public_url) + '" alt="ticket" id="ticketModalMainImg">';
+  if (imgs.length > 1) {
+    body += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px" id="ticketModalThumbs"></div>';
+  }
+  document.getElementById('ticketModalBody').innerHTML = body;
+  if (imgs.length > 1) {
+    var thumbs = document.getElementById('ticketModalThumbs');
+    imgs.forEach(function(im, i) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ticket-thumb-btn';
+      btn.onclick = function() { openTicketModal(bookingId, i); };
+      btn.innerHTML = '<img src="' + escAttr(im.public_url) + '" style="width:52px;height:68px;object-fit:cover;border-radius:6px;border:2px solid ' + (i === idx ? 'var(--pink)' : 'var(--pink3)') + '">';
+      thumbs.appendChild(btn);
+    });
+  }
+  var actions = document.getElementById('ticketModalActions');
+  actions.innerHTML = '';
+  var btnOne = document.createElement('button');
+  btnOne.type = 'button';
+  btnOne.className = 'btn-modal';
+  btnOne.textContent = '⬇ ดาวน์โหลดรูปนี้';
+  btnOne.onclick = function() { downloadImageUrl(img.public_url, img.file_name + '.jpg'); };
+  actions.appendChild(btnOne);
+  var btnAll = document.createElement('button');
+  btnAll.type = 'button';
+  btnAll.className = 'btn-modal';
+  btnAll.style.background = 'linear-gradient(135deg,var(--lav),var(--sky))';
+  btnAll.textContent = '⬇ ดาวน์โหลดทั้งหมด (' + imgs.length + ')';
+  btnAll.onclick = function() { downloadAllBookingImages(bookingId); };
+  actions.appendChild(btnAll);
+  document.getElementById('ticketModalBg').classList.add('show');
+}
+
+function closeTicketModal() {
+  document.getElementById('ticketModalBg').classList.remove('show');
+}
+
 async function loadBookingImages(bookingId, gameKey, drawDate, containerId) {
   var el = document.getElementById(containerId);
   if (!el) return;
 
-  var {data} = await sb.from('lottery_images')
+  var { data } = await sb.from('lottery_images')
     .select('*')
     .eq('booking_id', bookingId)
     .order('file_name', { ascending: true });
 
-  if (data && data.length) {
-    var html = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">';
-    data.forEach(function(img) {
-      html += '<div style="position:relative">';
-      html += '<img src="' + img.public_url + '" style="width:60px;height:80px;object-fit:cover;border-radius:6px;border:2px solid var(--pink3)">';
-      html += '<div style="text-align:center;font-size:9px;color:var(--text2)">' + img.file_name + '</div>';
-      html += '</div>';
+  data = (data || []).slice().sort(function(a, b) {
+    var ai = a.set_index == null ? 999 : a.set_index;
+    var bi = b.set_index == null ? 999 : b.set_index;
+    return ai - bi || String(a.file_name).localeCompare(b.file_name);
+  });
+  _bookingImageCache[bookingId] = data;
+
+  if (data.length) {
+    var html = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px">';
+    html += '<button type="button" class="bk-btn ok" onclick="openTicketModal(\'' + escAttr(bookingId) + '\',0)">🖼 ดูรูป (' + data.length + ')</button>';
+    html += '<button type="button" class="bk-btn ok" style="background:var(--lav);color:#fff" onclick="downloadAllBookingImages(\'' + escAttr(bookingId) + '\')">⬇ ทั้งหมด</button>';
+    html += '</div>';
+    html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">';
+    data.forEach(function(img, i) {
+      var row = img.set_index != null ? ' · แถว' + (img.set_index + 1) : '';
+      html += '<button type="button" class="ticket-thumb-btn" onclick="openTicketModal(\'' + escAttr(bookingId) + '\',' + i + ')">';
+      html += '<img src="' + escAttr(img.public_url) + '" style="width:60px;height:80px;object-fit:cover;border-radius:6px;border:2px solid var(--pink3)">';
+      html += '<div style="text-align:center;font-size:9px;color:var(--text2)">' + escAttr(img.file_name + row) + '</div>';
+      html += '</button>';
     });
     html += '</div>';
     el.innerHTML = html;

@@ -89,8 +89,15 @@ CREATE TABLE IF NOT EXISTS public.lottery_images (
   storage_path text NOT NULL,
   public_url   text NOT NULL,
   booking_id   text DEFAULT NULL,
+  set_index    integer DEFAULT NULL,
+  source_filename text DEFAULT NULL,
+  number_signature text DEFAULT NULL,
   created_at   timestamptz DEFAULT now()
 );
+
+ALTER TABLE public.lottery_images ADD COLUMN IF NOT EXISTS set_index integer;
+ALTER TABLE public.lottery_images ADD COLUMN IF NOT EXISTS source_filename text;
+ALTER TABLE public.lottery_images ADD COLUMN IF NOT EXISTS number_signature text;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.lottery_images TO anon, authenticated;
 
