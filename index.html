@@ -1472,7 +1472,7 @@ async function loadPricePanel(){
     html+='<button class="btn-save-price" onclick="runAutoMatchAll()" style="margin-top:8px;background:linear-gradient(135deg,var(--lav),var(--sky))">🔗 ผูกอัตโนมัติทั้งหมด (เลือกเลข)</button>';
     html+='<div class="section-hd" style="margin-top:14px">🖼️ รูปที่อัพโหลดแล้ว</div>';
     html+='<div id="assignSummary" style="font-size:11px;color:var(--text2);margin-bottom:8px"></div>';
-    html+='<div id="uploadModeHint" style="font-size:11px;color:var(--text2);margin-bottom:6px">โหมดเลือกเลข: ตั้งชื่อไฟล์ให้มีเลขตรงกับใบจอง (เช่น 14-28-46-48-57-17) จะผูกอัตโนมัติ · ใบสุ่มใช้โหมดใบสุ่ม</div>';
+    html+='<div id="uploadModeHint" style="font-size:11px;color:var(--text2);margin-bottom:6px">โหมดเลือกเลข: L1=รายการที่1, L2=รายการที่2 หรือชื่อไฟล์มีเลขตรงใบจอง · ใบสุ่มใช้โหมดใบสุ่ม</div>';
     html+='<div id="galleryArea"></div>';
     html+='</div>';
 
@@ -1546,7 +1546,7 @@ function setUploadMode(mode) {
   var hint = document.getElementById('uploadModeHint');
   if (hint) {
     hint.textContent = _uploadMode === 'auto'
-      ? 'โหมดเลือกเลข: ตั้งชื่อไฟล์ให้มีเลขตรงกับใบจอง (เช่น 14-28-46-48-57-17) จะผูกอัตโนมัติ · ใบสุ่มใช้โหมดใบสุ่ม'
+      ? 'โหมดเลือกเลข: L1,L2… ตามลำดับรายการ หรือชื่อไฟล์มีเลขตรงใบจอง · ใบสุ่มใช้โหมดใบสุ่ม'
       : 'โหมดใบสุ่ม: อัพโหลดแล้วเลือกรายการจองใบสุ่มจากรายการด้านล่าง';
   }
   loadTicketGallery();
@@ -1620,12 +1620,52 @@ function slotKey(bookingId, setIndex) {
   return bookingId + '|' + setIndex;
 }
 
+/** L1, P2 หรือ 1-name.jpg → ลำดับรายการจอง */
+function ticketIndexFromName(name) {
+  var s = String(name || '').trim();
+  var m = s.match(/^([A-Za-z]+)(\d+)$/);
+  if (m) return parseInt(m[2], 10);
+  m = s.match(/^(\d+)[^0-9]/);
+  if (m) return parseInt(m[1], 10);
+  m = s.match(/^(\d+)$/);
+  if (m) return parseInt(m[1], 10);
+  return null;
+}
+
+function getManualBookingsOrdered(bookings) {
+  return (bookings || []).filter(function(b) {
+    return b.status !== 'cancelled' && !isRandomBooking(b);
+  }).sort(function(a, b) {
+    return String(a.created_at || a.id || '').localeCompare(String(b.created_at || b.id || ''));
+  });
+}
+
+/** ดึงชุดเลขทั้งหมดจากชื่อไฟล์ (รองรับหลายแถวในชื่อเดียว) */
+function allNumberSetsFromFilename(name, gameKey) {
+  var g = GAMES[gameKey];
+  if (!g) return [];
+  var nums = (String(name).match(/\d+/g) || []).map(function(n) { return parseInt(n, 10); }).filter(function(n) { return !isNaN(n) && n > 0; });
+  var need = g.mainCount + (g.bonusCount || 0);
+  var sets = [];
+  for (var i = 0; i + need <= nums.length; i++) {
+    var chunk = nums.slice(i, i + need);
+    var parsed = numbersFromFilename(chunk.join('-'), gameKey);
+    if (parsed) {
+      var sig = setSignature(gameKey, parsed.main, parsed.bonus);
+      if (!sets.some(function(x) { return x.signature === sig; })) sets.push(parsed);
+    }
+  }
+  return sets;
+}
+
 async function autoMatchTicketImages(gameKey, drawDate) {
   var [{ data: images }, { data: bookings }] = await Promise.all([
     sb.from('lottery_images').select('*').eq('game_key', gameKey).eq('draw_date', drawDate).is('booking_id', null),
     sb.from('bookings').select('*').eq('game_key', gameKey).eq('draw_date', drawDate).neq('status', 'cancelled')
   ]);
   if (!images || !images.length) return 0;
+
+  images = sortTicketImagesByName(images);
 
   var { data: linked } = await sb.from('lottery_images')
     .select('booking_id,set_index')
@@ -1634,8 +1674,12 @@ async function autoMatchTicketImages(gameKey, drawDate) {
     .not('booking_id', 'is', null);
 
   var taken = {};
+  var bookingHasImage = {};
   (linked || []).forEach(function(img) {
-    if (img.booking_id != null && img.set_index != null) taken[slotKey(img.booking_id, img.set_index)] = true;
+    if (img.booking_id != null) {
+      bookingHasImage[img.booking_id] = true;
+      if (img.set_index != null) taken[slotKey(img.booking_id, img.set_index)] = true;
+    }
   });
 
   var slots = getManualSetSlots(bookings || [], gameKey);
@@ -1644,7 +1688,23 @@ async function autoMatchTicketImages(gameKey, drawDate) {
     if (!taken[slotKey(s.bookingId, s.setIndex)]) slotBySig[s.signature] = s;
   });
 
+  var manualBookings = getManualBookingsOrdered(bookings);
   var matched = 0;
+
+  async function linkImage(img, bookingId, setIndex, sig) {
+    var { error } = await sb.from('lottery_images').update({
+      booking_id: bookingId,
+      set_index: setIndex,
+      number_signature: sig || null
+    }).eq('id', img.id);
+    if (error) return false;
+    matched++;
+    if (setIndex != null) taken[slotKey(bookingId, setIndex)] = true;
+    bookingHasImage[bookingId] = true;
+    return true;
+  }
+
+  // ผ่าน 1: เลขในชื่อไฟล์ตรงแถว
   for (var i = 0; i < images.length; i++) {
     var img = images[i];
     var src = img.source_filename || img.file_name || '';
@@ -1653,17 +1713,53 @@ async function autoMatchTicketImages(gameKey, drawDate) {
     var sig = setSignature(gameKey, parsed.main, parsed.bonus);
     var slot = slotBySig[sig];
     if (!slot) continue;
-    var { error } = await sb.from('lottery_images').update({
-      booking_id: slot.bookingId,
-      set_index: slot.setIndex,
-      number_signature: sig
-    }).eq('id', img.id);
-    if (!error) {
-      matched++;
-      taken[slotKey(slot.bookingId, slot.setIndex)] = true;
-      delete slotBySig[sig];
-    }
+    if (await linkImage(img, slot.bookingId, slot.setIndex, sig)) delete slotBySig[sig];
   }
+
+  // โหลดรูปที่ยังไม่ผูกหลังผ่าน 1
+  var { data: left1 } = await sb.from('lottery_images')
+    .select('*')
+    .eq('game_key', gameKey)
+    .eq('draw_date', drawDate)
+    .is('booking_id', null);
+  left1 = sortTicketImagesByName(left1 || []);
+
+  // ผ่าน 2: L1, L2… = รายการจองลำดับที่ n (ใบเดียวครอบคลุมทุกแถว)
+  for (var j = 0; j < left1.length; j++) {
+    var im = left1[j];
+    var ord = ticketIndexFromName(im.file_name) || ticketIndexFromName(im.source_filename);
+    if (!ord || ord < 1 || ord > manualBookings.length) continue;
+    var bk = manualBookings[ord - 1];
+    if (bookingHasImage[bk.id]) continue;
+    if (await linkImage(im, bk.id, null, 'order:' + ord)) {}
+  }
+
+  var { data: left2 } = await sb.from('lottery_images')
+    .select('*')
+    .eq('game_key', gameKey)
+    .eq('draw_date', drawDate)
+    .is('booking_id', null);
+
+  // ผ่าน 3: หลายชุดเลขในชื่อไฟล์เดียว
+  for (var k = 0; k < (left2 || []).length; k++) {
+    var im2 = left2[k];
+    var src2 = im2.source_filename || im2.file_name || '';
+    var multi = allNumberSetsFromFilename(src2, gameKey);
+    if (!multi.length) continue;
+    var linkedOne = false;
+    for (var m = 0; m < multi.length; m++) {
+      var sig2 = setSignature(gameKey, multi[m].main, multi[m].bonus);
+      var slot2 = slotBySig[sig2];
+      if (!slot2) continue;
+      if (await linkImage(im2, slot2.bookingId, slot2.setIndex, sig2)) {
+        delete slotBySig[sig2];
+        linkedOne = true;
+        break;
+      }
+    }
+    if (linkedOne) continue;
+  }
+
   return matched;
 }
 
@@ -1910,9 +2006,26 @@ async function loadTicketGallery() {
         html += '<option value="" disabled>ไม่มีรายการจองแบบสุ่ม</option>';
       }
       html += '</select>';
-    } else if (!linked && _uploadMode === 'auto') {
-      html += '<div style="font-size:10px;color:var(--text3);margin-top:6px">ยังไม่ผูก — ตั้งชื่อไฟล์ให้ตรงเลข หรือกดผูกอัตโนมัติ</div>';
-      html += '<button type="button" class="bk-btn ok" style="margin-top:6px;width:100%" onclick="retryAutoMatchOne(\'' + escAttr(img.id) + '\')">🔗 ลองผูกอัตโนมัติ</button>';
+    } else if (!linked) {
+      html += '<label style="font-size:10px;color:var(--text2);display:block;margin-bottom:3px;margin-top:6px">ผูกกับรายการจอง</label>';
+      html += '<select class="price-inp assign-ticket-sel" data-img-id="' + escAttr(img.id) + '" style="width:100%;font-size:11px;padding:6px 8px;text-align:left" onchange="assignTicket(this.dataset.imgId, this.value)">';
+      html += '<option value="">— เลือกรายการ —</option>';
+      bookings.filter(function(b) { return !isRandomBooking(b); }).forEach(function(b) {
+        var sets = b.sets_data || [];
+        if (sets.length <= 1) {
+          html += '<option value="' + escAttr(b.id) + '|0">' + escAttr(b.customer_name || b.id) + ' (' + (b.sets_count || 1) + ' แถว)</option>';
+        } else {
+          html += '<option value="' + escAttr(b.id) + '|all">' + escAttr(b.customer_name || b.id) + ' · ทุกแถว (ใบเดียว)</option>';
+          sets.forEach(function(sd, idx) {
+            if (isSetRandom(sd, b)) return;
+            html += '<option value="' + escAttr(b.id) + '|' + idx + '">' + escAttr((b.customer_name || b.id) + ' · แถว ' + (idx + 1)) + '</option>';
+          });
+        }
+      });
+      html += '</select>';
+      if (_uploadMode === 'auto') {
+        html += '<button type="button" class="bk-btn ok" style="margin-top:6px;width:100%" onclick="runAutoMatchAll()">🔗 ผูกอัตโนมัติทั้งหมด</button>';
+      }
     }
     html += '</div>';
   });
@@ -1935,13 +2048,16 @@ async function assignTicket(imageId, value) {
   if (value) {
     var parts = String(value).split('|');
     bookingId = parts[0];
-    setIndex = parts.length > 1 ? parseInt(parts[1], 10) : 0;
-    if (isNaN(setIndex)) setIndex = 0;
+    if (parts[1] === 'all') setIndex = null;
+    else {
+      setIndex = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+      if (isNaN(setIndex)) setIndex = 0;
+    }
   }
   var { error } = await sb.from('lottery_images').update({
     booking_id: bookingId,
     set_index: bookingId ? setIndex : null,
-    number_signature: null
+    number_signature: bookingId ? 'manual' : null
   }).eq('id', imageId);
   if (error) {
     toast('ผูกรูปไม่สำเร็จ: ' + dbErrMsg(error), 'err');
