@@ -180,6 +180,12 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .ticket-thumb-btn img{transition:transform .15s}
 .ticket-thumb-btn:hover img{transform:scale(1.05)}
 .upload-mode-row{margin:10px 0 4px}
+.random-ticket-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.random-ticket-card{position:relative;border:2px solid var(--pink3);border-radius:10px;overflow:hidden;cursor:pointer;background:var(--white);transition:all .15s}
+.random-ticket-card:hover{border-color:var(--pink2)}
+.random-ticket-card.sel{border-color:var(--pink);box-shadow:0 0 0 3px var(--pink3)}
+.random-ticket-card img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block}
+.random-ticket-card .lbl{position:absolute;bottom:0;left:0;right:0;background:rgba(255,139,171,.92);color:#fff;font-size:10px;text-align:center;padding:4px;font-family:Itim,cursive}
 .modal{background:var(--white);border-radius:22px;padding:26px 22px;max-width:330px;width:90%;text-align:center;box-shadow:0 16px 52px rgba(255,139,171,.3);border:2px solid var(--pink3);animation:pop .38s cubic-bezier(.34,1.56,.64,1)}
 @keyframes pop{from{transform:scale(.72);opacity:0}to{transform:scale(1);opacity:1}}
 .modal-anim{font-size:54px;margin-bottom:7px;animation:wiggle .9s ease infinite}
@@ -284,8 +290,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     </div>
   </div>
   <div class="sbox" id="secImgs" style="display:none">
-    <div class="stitle">📄 เลือกใบสุ่ม</div>
-    <div class="empty">📂 ยังไม่มีรูปใบสุ่ม</div>
+    <div class="stitle">📄 เลือกใบสุ่ม <span class="badge" id="randomPoolCount"></span></div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:6px">แตะรูปเพื่อเลือกใบที่ต้องการจอง (งวดตามวันที่อเมริกาที่เลือกด้านบน)</div>
+    <div id="randomTicketGrid"><div class="empty">📂 ยังไม่มีรูปใบสุ่ม</div></div>
   </div>
   <div class="sbox" id="secSets" style="display:none">
     <div class="stitle">🎫 จำนวนแถว <span class="badge">สูงสุด 5</span></div>
@@ -596,7 +603,8 @@ function updateAdminHeader(){
     '<div class="draw-tz-note">เวลาด้านบน = <b>ประเทศไทย (ICT)</b> · การเลือก<b>งวด/วันที่</b> = <b>เวลาอเมริกา (Central — Texas)</b></div>';
   updateAdminClock();
 }
-var S = {game:null,drawDate:'',method:'random',setsData:[{mainSel:[],bonusSel:[]}],powerPlay:false,sets:1,lastId:'',lastTotal:0,pendingBooking:null};
+var S = {game:null,drawDate:'',method:'random',setsData:[{mainSel:[],bonusSel:[]}],powerPlay:false,sets:1,lastId:'',lastTotal:0,pendingBooking:null,selectedTicketId:null};
+var _randomPoolCache = {};
 
 // ── INIT ────────────────────────────────────────
 async function init() {
@@ -619,6 +627,7 @@ async function init() {
           if (LIST_FILTER.gameKey && LIST_FILTER.drawDate) loadList();
           loadStats();
         }
+        if (S.method === 'draw' && S.game && S.drawDate) loadRandomTicketPool();
       }
     )
     .on('postgres_changes',
@@ -705,6 +714,7 @@ async function pickGame(key) {
     var p=PRICES[key]||{};
     document.getElementById('ppLabel').textContent='+บาท '+(p.pp_sell||0)+'/แถว';
   }
+  if (S.method==='draw') loadRandomTicketPool();
 }
 
 function buildDrawDays(g) {
@@ -725,17 +735,88 @@ function buildDrawDays(g) {
 function pickDate(el,val) {
   document.querySelectorAll('.day-pill').forEach(function(p){p.classList.remove('active');});
   el.classList.add('active'); S.drawDate=val;
+  S.selectedTicketId=null;
+  if (S.method==='draw') loadRandomTicketPool();
 }
 
 // ── METHOD ──────────────────────────────────────
 function setGlobalMethod(m){
   if(!S.game) return;
   S.method=m;
+  S.selectedTicketId=null;
   document.getElementById('mDraw').classList.toggle('active',m==='draw');
   document.getElementById('secAllSets').style.display=m==='draw'?'none':'block';
   document.getElementById('secSets').style.display=m==='draw'?'none':'block';
+  document.getElementById('secPP').style.display=(m==='draw'||!GAMES[S.game].hasPP)?'none':(S.game?'block':'none');
   document.getElementById('secImgs').style.display=m==='draw'?'block':'none';
-  if(m!=='draw') renderAllSets();
+  if(m==='draw') {
+    S.sets=1;
+    loadRandomTicketPool();
+  } else {
+    renderAllSets();
+  }
+}
+
+function selectRandomTicket(imageId) {
+  S.selectedTicketId = imageId;
+  document.querySelectorAll('.random-ticket-card').forEach(function(el) {
+    el.classList.toggle('sel', el.dataset.id === imageId);
+  });
+}
+
+async function loadRandomTicketPool() {
+  var grid = document.getElementById('randomTicketGrid');
+  var badge = document.getElementById('randomPoolCount');
+  if (!grid) return;
+  if (!S.game || !S.drawDate) {
+    grid.innerHTML = '<div class="empty">เลือกเกมและงวดก่อน</div>';
+    if (badge) badge.textContent = '';
+    return;
+  }
+
+  grid.innerHTML = '<div class="empty">⏳ โหลดรูป...</div>';
+
+  var { data, error } = await sb.from('lottery_images')
+    .select('*')
+    .eq('game_key', S.game)
+    .eq('draw_date', S.drawDate)
+    .is('booking_id', null)
+    .order('file_name', { ascending: true });
+
+  if (error) {
+    grid.innerHTML = '<div class="empty">โหลดรูปไม่สำเร็จ</div>';
+    return;
+  }
+
+  var pool = data || [];
+  _randomPoolCache = {};
+  pool.forEach(function(im) { _randomPoolCache[im.id] = im; });
+  if (badge) badge.textContent = pool.length ? pool.length + ' ใบ' : '';
+
+  if (!pool.length) {
+    grid.innerHTML = '<div class="empty">📂 ยังไม่มีรูปใบสุ่ม</div>' +
+      '<div style="font-size:11px;color:var(--text3);text-align:center;margin-top:6px">งวด ' + escAttr(S.drawDate) + ' · ' + escAttr((GAMES[S.game]||{}).name || S.game) +
+      '<br>ให้ Admin 2 อัพโหลด (โหมดใบสุ่ม หรือรูปที่ยังไม่ผูกรายการ)</div>';
+    return;
+  }
+
+  if (S.selectedTicketId && !pool.some(function(im) { return im.id === S.selectedTicketId; })) {
+    S.selectedTicketId = null;
+  }
+
+  var html = '<div class="random-ticket-grid">';
+  pool.forEach(function(img) {
+    var sel = S.selectedTicketId === img.id ? ' sel' : '';
+    html += '<div class="random-ticket-card' + sel + '" data-id="' + escAttr(img.id) + '">';
+    html += '<img src="' + escAttr(img.public_url) + '" alt="' + escAttr(img.file_name) + '">';
+    html += '<div class="lbl">' + escAttr(img.file_name) + '</div></div>';
+  });
+  html += '</div>';
+  grid.innerHTML = html;
+  grid.onclick = function(e) {
+    var card = e.target.closest('.random-ticket-card');
+    if (card && card.dataset.id) selectRandomTicket(card.dataset.id);
+  };
 }
 
 function setMethod(m, silent) {
@@ -918,9 +999,16 @@ async function doSubmit() {
   if (!S.game){toast('เลือกเกมก่อน','err');return;}
   if (!S.drawDate){toast('เลือกงวดก่อน','err');return;}
   var g=GAMES[S.game];
+  if (S.method==='draw') {
+    if (!S.selectedTicketId) { toast('เลือกรูปใบสุ่มก่อน','err'); return; }
+    S.sets=1;
+    S.setsData=[{mainSel:[],bonusSel:[],mode:'draw',ticketImageId:S.selectedTicketId}];
+  }
   for (var i=0;i<S.setsData.length;i++){
     var sd=S.setsData[i];
-    var isRand=sd.mode==='random'||(!sd.mode&&S.method==='random');
+    var isDraw=sd.mode==='draw'||S.method==='draw';
+    var isRand=!isDraw&&(sd.mode==='random'||(!sd.mode&&S.method==='random'));
+    if(isDraw){ continue; }
     if(!isRand){
       if (sd.mainSel.length!==g.mainCount){toast('แถว'+(i+1)+': เลือกเลขให้ครบ '+g.mainCount,'err');return;}
       if (g.bonusCount>0&&sd.bonusSel.length!==g.bonusCount){toast('แถว'+(i+1)+': เลือก '+g.bonusLabel,'err');return;}
@@ -959,7 +1047,14 @@ function showConfirm(bookingData) {
 
   bookingData.setsData.forEach(function(sd, i) {
     html += '<div style="margin-bottom:8px;padding:8px;background:var(--white);border-radius:10px;border:1px solid var(--pink3)">';
-    html += '<div style="font-size:11px;color:var(--text2);margin-bottom:5px">แถวที่ ' + (i+1) + '</div>';
+    html += '<div style="font-size:11px;color:var(--text2);margin-bottom:5px">' + (sd.mode==='draw'||bookingData.method==='draw'?'ใบสุ่มที่เลือก':'แถวที่ ' + (i+1)) + '</div>';
+    if ((sd.mode==='draw'||bookingData.method==='draw') && sd.ticketImageId) {
+      var poolImg = (_randomPoolCache || {})[sd.ticketImageId];
+      if (poolImg) {
+        html += '<img src="' + escAttr(poolImg.public_url) + '" style="max-width:120px;border-radius:8px;border:2px solid var(--pink3);margin-bottom:6px">';
+      }
+      html += '<div style="font-size:11px;color:var(--lav)">🎟️ ' + escAttr(poolImg ? poolImg.file_name : sd.ticketImageId) + '</div>';
+    }
     html += '<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">';
     sd.mainSel.slice().sort(function(a,b){return a-b;}).forEach(function(n){
       html += '<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--pink),var(--lav));color:#fff;display:flex;align-items:center;justify-content:center;font-family:Itim,cursive;font-size:12px;font-weight:700">' + (n<10?'0':'') + n + '</div>';
@@ -1027,6 +1122,15 @@ async function doPayment() {
     return;
   }
 
+  if (bookingData.method === 'draw' && bookingData.setsData[0] && bookingData.setsData[0].ticketImageId) {
+    await sb.from('lottery_images').update({
+      booking_id: id,
+      set_index: 0
+    }).eq('id', bookingData.setsData[0].ticketImageId).is('booking_id', null);
+    S.selectedTicketId = null;
+    loadRandomTicketPool();
+  }
+
   S.lastId = id;
   S.lastTotal = unitSell * bookingData.sets;
 
@@ -1044,7 +1148,7 @@ function closeModal(){document.getElementById('modalBg').classList.remove('show'
 function shareLine(){window.open('https://line.me/R/msg/text/?'+encodeURIComponent('จองลอตเตอรี่\nID: '+S.lastId+'\nเกม: '+(GAMES[S.game]||{name:''}).name+'\nยอด: บาท '+S.lastTotal),'_blank');}
 
 function resetForm(){
-  S.game=null;S.setsData=[{mainSel:[],bonusSel:[]}];S.powerPlay=false;S.sets=1;S.drawDate='';S.pendingBooking=null;
+  S.game=null;S.setsData=[{mainSel:[],bonusSel:[]}];S.powerPlay=false;S.sets=1;S.drawDate='';S.pendingBooking=null;S.selectedTicketId=null;
   document.querySelectorAll('.game-card').forEach(function(c){c.classList.remove('sel');});
   ['secDate','secOnline','secMethod','secSets','secPP','secAllSets','secImgs','secInfo','secSubmit'].forEach(function(id){document.getElementById(id).style.display='none';});
   document.getElementById('fName').value='';document.getElementById('fPhone').value='';document.getElementById('fNote').value='';
