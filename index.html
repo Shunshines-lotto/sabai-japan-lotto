@@ -776,6 +776,8 @@ async function loadRandomTicketPool() {
 
   grid.innerHTML = '<div class="empty">⏳ โหลดรูป...</div>';
 
+  await repairCancelledTicketsForDraw(S.game, S.drawDate);
+
   var { data, error } = await sb.from('lottery_images')
     .select('*')
     .eq('game_key', S.game)
@@ -1362,7 +1364,14 @@ async function updStatus(id, status) {
 
   if (!error) {
     if (status === 'cancelled') {
-      await releaseTicketImagesForBooking(id);
+      var { data: bRow } = await sb.from('bookings').select('game_key,draw_date').eq('id', id).maybeSingle();
+      var rel = await releaseTicketImagesForBooking(id);
+      if (!rel.ok) {
+        toast('ยกเลิกแล้ว แต่คืนรูปไม่สำเร็จ: ' + dbErrMsg(rel.error), 'err');
+      }
+      if (bRow && bRow.game_key && bRow.draw_date) {
+        await repairCancelledTicketsForDraw(bRow.game_key, bRow.draw_date);
+      }
       if (S.method === 'draw' && S.game && S.drawDate) loadRandomTicketPool();
       if (ADMIN.role === 2) loadTicketGallery();
     }
@@ -1705,11 +1714,49 @@ function sortTicketImagesByName(list) {
 }
 
 async function releaseTicketImagesForBooking(bookingId) {
-  if (!bookingId) return;
-  await sb.from('lottery_images').update({
-    booking_id: null,
-    set_index: null
-  }).eq('booking_id', bookingId);
+  if (!bookingId) return { ok: true, released: 0 };
+
+  var released = 0;
+  var { data: byBooking, error: err1 } = await sb.from('lottery_images')
+    .update({ booking_id: null, set_index: null })
+    .eq('booking_id', bookingId)
+    .select('id');
+
+  if (err1) return { ok: false, error: err1 };
+  released += (byBooking || []).length;
+
+  var { data: booking } = await sb.from('bookings')
+    .select('sets_data')
+    .eq('id', bookingId)
+    .maybeSingle();
+
+  var ticketIds = [];
+  (booking && booking.sets_data || []).forEach(function(sd) {
+    if (sd && sd.ticketImageId) ticketIds.push(sd.ticketImageId);
+  });
+
+  for (var i = 0; i < ticketIds.length; i++) {
+    var { data: byId, error: err2 } = await sb.from('lottery_images')
+      .update({ booking_id: null, set_index: null })
+      .eq('id', ticketIds[i])
+      .select('id');
+    if (!err2 && byId && byId.length) released += byId.length;
+  }
+
+  return { ok: true, released: released };
+}
+
+/** คืนรูปจากรายการที่ยกเลิกแล้วแต่ยังผูกค้างอยู่ */
+async function repairCancelledTicketsForDraw(gameKey, drawDate) {
+  if (!gameKey || !drawDate) return;
+  var { data: cancelled } = await sb.from('bookings')
+    .select('id')
+    .eq('game_key', gameKey)
+    .eq('draw_date', drawDate)
+    .eq('status', 'cancelled');
+  for (var i = 0; i < (cancelled || []).length; i++) {
+    await releaseTicketImagesForBooking(cancelled[i].id);
+  }
 }
 
 function getTicketName(index) {
@@ -1802,6 +1849,8 @@ async function loadTicketGallery() {
     if (summary) summary.textContent = '';
     return;
   }
+
+  await repairCancelledTicketsForDraw(gameKey, drawDate);
 
   var [{ data: images }, { data: bookings }] = await Promise.all([
     sb.from('lottery_images').select('*').eq('game_key', gameKey).eq('draw_date', drawDate).order('file_name', { ascending: true }),
