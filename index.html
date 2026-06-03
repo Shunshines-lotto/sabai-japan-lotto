@@ -414,8 +414,8 @@ const PRIZE_LEVELS = {
     { match: 3, bonus: true,  label: 'Match 3+MB',usd: 200 },
     { match: 3, bonus: false, label: 'Match 3',   usd: 10 },
     { match: 2, bonus: true,  label: 'Match 2+MB',usd: 10 },
-    { match: 1, bonus: true,  label: 'Match 1+MB',usd: 4 },
-    { match: 0, bonus: true,  label: 'Match MB',  usd: 2 },
+    { match: 1, bonus: true,  label: 'Match 1+MB',usd: 7 },
+    { match: 0, bonus: true,  label: 'Match MB',  usd: 5 },
   ],
   txtwostep: [
     { match: 4, bonus: true,  label: 'Jackpot',   usd: 0 },
@@ -445,12 +445,29 @@ function getMegaplier(sd) {
   return (m >= 2 && m <= 10) ? m : 1;
 }
 
-/** Megaplier (2X–10X) คูณเงินรางวัล non-jackpot ของ Mega Millions */
+/** Mega Millions 2025+ ตารางจ่ายตาม Multiplier (ไม่ใช่ base×X อย่างเดียว) */
+var MEGA_MULTIPLIER_PAYOUT = {
+  'Match 5':      { 2: 2000000, 3: 3000000, 4: 4000000, 5: 5000000, 10: 10000000 },
+  'Match 4+MB':   { 2: 20000,   3: 30000,   4: 40000,   5: 50000,   10: 100000 },
+  'Match 4':      { 2: 1000,    3: 1500,    4: 2000,    5: 2500,    10: 5000 },
+  'Match 3+MB':   { 2: 400,     3: 600,     4: 800,     5: 1000,    10: 2000 },
+  'Match 3':      { 2: 20,      3: 30,      4: 40,      5: 50,      10: 100 },
+  'Match 2+MB':   { 2: 20,      3: 30,      4: 40,      5: 50,      10: 100 },
+  'Match 1+MB':   { 2: 14,      3: 21,      4: 28,      5: 35,      10: 70 },
+  'Match MB':     { 2: 10,      3: 15,      4: 20,      5: 25,      10: 50 }
+};
+
 function prizeUsdWithMegaplier(prize, sd, gameKey) {
-  var usd = prize.usd || 0;
-  if (!usd || prize.label === 'Jackpot' || gameKey !== 'mega') return usd;
+  if (!prize || prize.label === 'Jackpot') return prize ? (prize.usd || 0) : 0;
+  if (gameKey !== 'mega') {
+    var usd = prize.usd || 0;
+    return usd;
+  }
   var mp = getMegaplier(sd);
-  return mp > 1 ? usd * mp : usd;
+  if (mp < 2) mp = 2;
+  var row = MEGA_MULTIPLIER_PAYOUT[prize.label];
+  if (row && row[mp]) return row[mp];
+  return (prize.usd || 0) * mp;
 }
 
 function checkPrize(gameKey, playerMain, playerBonus, resultMain, resultBonus, jackpotUsd) {
