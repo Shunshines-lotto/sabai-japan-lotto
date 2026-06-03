@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sabai Japan Lotto</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600&family=Itim&family=Noto+Sans+Thai:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#fff8f5;--pink:#ff8fab;--pink2:#ffb3c6;--pink3:#ffd6e0;--pink4:#fff0f3;
+  --lav:#c77dff;--lav2:#e0aaff;--lav3:#f3d9ff;--peach:#ffb347;--mint:#80ed99;
+  --sky:#90e0ef;--text:#5c3a4e;--text2:#9e7090;--text3:#c5a0b5;--white:#fff;
+  --shadow:rgba(255,139,171,.18);--shadow2:rgba(199,125,255,.15);
+  --r:20px;--r2:14px;--r3:50px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans Thai','Mitr',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(circle at 10% 20%,rgba(255,179,198,.25) 0%,transparent 40%),
+             radial-gradient(circle at 90% 10%,rgba(224,170,255,.2) 0%,transparent 35%)}
+.petal{position:fixed;pointer-events:none;z-index:0;font-size:14px;opacity:.4;animation:fall linear infinite}
+@keyframes fall{0%{transform:translateY(-20px) rotate(0deg);opacity:.5}100%{transform:translateY(110vh) rotate(360deg);opacity:0}}
+
+/* HEADER */
+.header{position:relative;z-index:1;text-align:center;padding:24px 20px 18px;
+  background:linear-gradient(160deg,#ffcfe0 0%,#f3d9ff 50%,#cbe8ff 100%);
+  border-bottom:3px dashed var(--pink2)}
+.header::after{content:'* * * * * * * * * * *';display:block;font-size:11px;margin-top:10px;letter-spacing:6px;opacity:.35}
+.logo-wrap{display:flex;align-items:center;justify-content:center;gap:10px}
+.logo-icon{width:52px;height:52px;background:var(--white);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 4px 16px var(--shadow);animation:bounce 2s ease-in-out infinite;cursor:pointer;user-select:none}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.logo-text h1{font-family:'Itim',cursive;font-size:clamp(20px,5vw,28px);color:var(--text)}
+.logo-text h1 span{color:var(--pink)}
+.logo-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.line-badge{display:inline-flex;align-items:center;gap:5px;background:var(--white);border-radius:var(--r3);padding:5px 14px;font-size:12px;color:#00b900;font-weight:600;box-shadow:0 2px 8px rgba(0,185,0,.15);margin-top:8px}
+.admin-btns{display:flex;justify-content:center;gap:10px;margin-top:10px}
+.admin-btn-hd{padding:7px 20px;border:none;border-radius:var(--r3);color:#fff;font-family:'Mitr',sans-serif;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 3px 12px var(--shadow)}
+
+/* ADMIN BAR */
+.admin-bar{display:none;gap:8px;padding:12px 14px 0;position:relative;z-index:1}
+.admin-bar.show{display:flex}
+.stat-card{flex:1;background:var(--white);border-radius:var(--r);padding:10px 6px;text-align:center;box-shadow:0 3px 12px var(--shadow);border:2px solid var(--pink3)}
+.stat-num{font-family:'Itim',cursive;font-size:20px;color:var(--pink);font-weight:700}
+.stat-label{font-size:9px;color:var(--text2);margin-top:1px}
+.admin-nav{display:none;gap:7px;padding:10px 14px;position:relative;z-index:1}
+.admin-nav.show{display:flex}
+.nav-btn{flex:1;padding:10px 6px;background:var(--white);border:2px solid var(--pink3);border-radius:var(--r3);color:var(--text2);font-family:'Mitr',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s}
+.nav-btn.active{background:linear-gradient(135deg,var(--pink),var(--lav));color:var(--white);border-color:transparent;box-shadow:0 3px 14px var(--shadow)}
+.nav-btn.logout{background:linear-gradient(135deg,var(--pink),var(--lav));color:#fff;border-color:transparent;flex:0;padding:10px 14px;font-size:11px}
+
+/* PANELS */
+.panel{display:none}.panel.active{display:block;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.wrap{padding:0 14px 32px;position:relative;z-index:1}
+
+/* SECTION BOX */
+.sbox{background:var(--white);border-radius:var(--r);padding:16px;margin-bottom:11px;box-shadow:0 4px 18px var(--shadow);border:2px solid var(--pink3)}
+.stitle{font-family:'Mitr',sans-serif;font-size:13px;font-weight:600;color:var(--pink);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.stitle .badge{background:var(--pink3);color:var(--pink);border-radius:var(--r3);padding:2px 9px;font-size:10px}
+
+/* GAME GRID */
+.game-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.game-card{background:var(--cream);border:2px solid var(--pink3);border-radius:var(--r);padding:12px 6px;text-align:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.game-card::before{content:'';position:absolute;inset:0;background:var(--gc,var(--pink));opacity:0;transition:opacity .2s}
+.game-card:hover::before{opacity:.07}
+.game-card:hover{transform:translateY(-2px);box-shadow:0 5px 16px var(--shadow)}
+.game-card.sel{border-color:var(--gc,var(--pink));box-shadow:0 0 0 2px var(--gc,var(--pink));background:var(--white)}
+.game-card.sel::before{opacity:.1}
+.game-emoji{font-size:22px;display:block;margin-bottom:4px;position:relative}
+.game-name{font-family:'Mitr',sans-serif;font-size:10px;font-weight:600;color:var(--text);line-height:1.3;position:relative}
+.game-price{font-size:12px;color:var(--pink);margin-top:3px;position:relative;font-weight:700;font-family:'Itim',cursive}
+
+/* METHOD */
+.method-row{display:flex;gap:7px}
+.mpill{flex:1;padding:10px 5px;border:2px solid var(--pink3);background:var(--cream);border-radius:var(--r3);color:var(--text2);font-family:'Mitr',sans-serif;font-size:11px;font-weight:500;cursor:pointer;transition:all .2s;text-align:center}
+.mpill.active{background:linear-gradient(135deg,var(--lav2),var(--pink2));border-color:transparent;color:var(--text);box-shadow:0 3px 10px var(--shadow2)}
+
+/* DRAW DAYS */
+.draw-days{display:flex;gap:7px;flex-wrap:wrap}
+.day-pill{padding:7px 13px;border:2px solid var(--pink3);background:var(--cream);border-radius:var(--r3);color:var(--text2);font-family:'Mitr',sans-serif;font-size:12px;cursor:pointer;transition:all .2s}
+.day-pill.active{background:linear-gradient(135deg,var(--pink),var(--pink2));border-color:transparent;color:var(--white);box-shadow:0 3px 10px var(--shadow)}
+
+/* NUMBERS */
+.num-grid{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:4px}
+.nb{width:33px;height:33px;border-radius:50%;border:2px solid var(--pink3);background:var(--cream);color:var(--text2);font-family:'Itim',cursive;font-size:11px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.nb:hover{border-color:var(--pink2);color:var(--pink);background:var(--pink4)}
+.nb.sel{background:linear-gradient(135deg,var(--pink),var(--lav));border-color:transparent;color:var(--white);box-shadow:0 2px 8px var(--shadow);transform:scale(1.08)}
+.nb.bsel{background:linear-gradient(135deg,var(--peach),#ff6b47);border-color:transparent;color:var(--white);transform:scale(1.08)}
+.nb.dimmed{opacity:.28;pointer-events:none}
+.ball-display{background:var(--cream);border:2px solid var(--pink3);border-radius:var(--r);padding:11px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:52px}
+.ball{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Itim',cursive;font-size:12px;font-weight:700}
+.ball.main{background:linear-gradient(135deg,var(--pink),var(--lav));color:var(--white);box-shadow:0 2px 7px var(--shadow)}
+.ball.bonus{background:linear-gradient(135deg,var(--peach),#ff6b47);color:var(--white)}
+.btn-random{width:100%;padding:11px;background:linear-gradient(135deg,var(--lav),var(--pink));border:none;border-radius:var(--r3);color:var(--white);font-family:'Mitr',sans-serif;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 3px 12px var(--shadow2);margin-bottom:11px;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
+.divider{display:flex;align-items:center;gap:8px;margin:11px 0;color:var(--text3);font-size:11px}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--pink3)}
+
+/* POWER PLAY */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--cream);border-radius:var(--r);border:2px solid var(--pink3);cursor:pointer}
+.toggle-label{font-size:13px;font-weight:500}
+.toggle-label small{display:block;color:var(--text2);font-size:11px}
+.toggle{width:44px;height:24px;border-radius:12px;background:var(--pink3);position:relative;transition:background .2s;flex-shrink:0}
+.toggle.on{background:linear-gradient(135deg,var(--pink),var(--lav))}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--white);box-shadow:0 1px 4px rgba(0,0,0,.15);transition:transform .2s}
+.toggle.on::after{transform:translateX(20px)}
+
+/* SETS */
+.sets-row{display:flex;align-items:center;gap:11px;background:var(--cream);border:2px solid var(--pink3);border-radius:var(--r);padding:10px 13px}
+.sets-btn{width:32px;height:32px;border-radius:50%;border:2px solid var(--pink);background:var(--white);color:var(--pink);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;transition:all .2s}
+.sets-btn:hover{background:var(--pink);color:var(--white)}
+.sets-num{font-family:'Itim',cursive;font-size:22px;color:var(--pink);min-width:36px;text-align:center}
+.sets-unit{font-size:12px;color:var(--text2)}
+.sets-price{margin-left:auto;font-family:'Itim',cursive;font-size:19px;color:var(--lav)}
+
+/* FORM */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px}
+.form-row.full{grid-template-columns:1fr}
+.fg label{display:block;font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:600}
+.fg input,.fg textarea{width:100%;background:var(--cream);border:2px solid var(--pink3);border-radius:var(--r2);padding:9px 11px;color:var(--text);font-family:'Noto Sans Thai','Mitr',sans-serif;font-size:13px;outline:none;transition:border-color .2s}
+.fg input:focus,.fg textarea:focus{border-color:var(--pink);background:var(--white)}
+.fg textarea{resize:none;height:62px}
+
+/* SUBMIT */
+.btn-submit{width:100%;padding:14px;background:linear-gradient(135deg,var(--pink),var(--lav));border:none;border-radius:var(--r3);color:var(--white);font-family:'Mitr',sans-serif;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 5px 16px var(--shadow);margin-top:6px;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .2s}
+.btn-submit:hover{transform:translateY(-2px)}
+.btn-submit:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+/* BOOKING LIST */
+.bk-card{background:var(--white);border:2px solid var(--pink3);border-radius:var(--r);padding:13px;margin-bottom:9px;box-shadow:0 3px 10px var(--shadow)}
+.bk-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.bk-id{font-family:'Itim',cursive;font-size:12px;color:var(--lav);font-weight:700}
+.bk-game{font-size:13px;font-weight:600;margin-bottom:4px}
+.bk-balls{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
+.bk-ball{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Itim',cursive;font-size:10px;font-weight:700}
+.bk-ball.m{background:linear-gradient(135deg,var(--pink),var(--lav));color:var(--white)}
+.bk-ball.b{background:linear-gradient(135deg,var(--peach),#ff6b47);color:var(--white)}
+.bk-meta{font-size:11px;color:var(--text2);display:flex;flex-wrap:wrap;gap:7px}
+.bk-actions{display:flex;gap:6px;margin-top:8px}
+.bk-btn{padding:5px 12px;border-radius:var(--r3);font-size:11px;font-weight:600;cursor:pointer;border:none;font-family:'Mitr',sans-serif;transition:all .15s}
+.bk-btn.ok{background:var(--mint);color:#065f46}
+.bk-btn.no{background:#ffe4e6;color:#be123c}
+.status-tag{font-size:10px;padding:2px 9px;border-radius:var(--r3);font-weight:600}
+.status-tag.pending{background:var(--lav3);color:#6d28d9}
+.status-tag.confirmed{background:#d1fae5;color:#065f46}
+.status-tag.cancelled{background:#ffe4e6;color:#be123c}
+.admin-label{display:inline-block;background:linear-gradient(135deg,var(--pink),var(--lav));color:var(--white);font-family:'Mitr',sans-serif;font-size:11px;font-weight:600;padding:3px 12px;border-radius:var(--r3);margin-bottom:9px}
+
+/* PRICE */
+.price-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.price-row{background:var(--cream);border:2px solid var(--pink3);border-radius:var(--r2);padding:11px}
+.price-row .game-lbl{font-size:12px;font-weight:600;margin-bottom:7px;color:var(--text)}
+.price-inp{width:100%;background:var(--white);border:2px solid var(--pink3);border-radius:var(--r2);padding:7px 10px;color:var(--text);font-family:'Itim',cursive;font-size:15px;outline:none;transition:border-color .2s;text-align:center}
+.price-inp:focus{border-color:var(--pink)}
+.price-inp-label{font-size:10px;color:var(--text2);margin-bottom:3px;margin-top:6px}
+.btn-save-price{width:100%;padding:12px;background:linear-gradient(135deg,var(--pink),var(--lav));border:none;border-radius:var(--r3);color:var(--white);font-family:'Mitr',sans-serif;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 3px 12px var(--shadow);margin-top:10px;transition:all .2s}
+.section-hd{font-family:'Mitr',sans-serif;font-size:13px;font-weight:600;color:var(--text2);margin:14px 0 8px;padding-left:2px}
+.profit-box{display:flex;justify-content:space-between;margin-top:6px}
+.profit-box div{text-align:center}
+.profit-box .lbl{font-size:10px;color:var(--text2)}
+.profit-box .val{font-family:'Itim',cursive;font-size:15px;font-weight:700}
+
+/* TOAST */
+.toast-wrap{position:fixed;bottom:20px;right:13px;z-index:9999}
+.toast{background:var(--white);border-left:4px solid var(--pink);border-radius:var(--r2);padding:10px 13px;box-shadow:0 4px 16px var(--shadow);margin-top:7px;max-width:250px;font-size:12px;display:flex;align-items:center;gap:7px;animation:toastIn .3s ease}
+.toast.err{border-left-color:#ef4444}.toast.ok{border-left-color:var(--mint)}
+@keyframes toastIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(92,58,78,.4);backdrop-filter:blur(7px);z-index:1000;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:var(--white);border-radius:22px;padding:26px 22px;max-width:330px;width:90%;text-align:center;box-shadow:0 16px 52px rgba(255,139,171,.3);border:2px solid var(--pink3);animation:pop .38s cubic-bezier(.34,1.56,.64,1)}
+@keyframes pop{from{transform:scale(.72);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-anim{font-size:54px;margin-bottom:7px;animation:wiggle .9s ease infinite}
+@keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+.modal-title{font-family:'Itim',cursive;font-size:21px;color:var(--pink);margin-bottom:5px}
+.modal-id{font-family:'Itim',cursive;font-size:18px;color:var(--lav);margin:7px 0}
+.modal-price{font-size:19px;font-family:'Itim',cursive;color:var(--peach);margin-bottom:5px}
+.modal-sub{font-size:12px;color:var(--text2);margin-bottom:16px}
+.btn-modal{padding:10px 26px;background:linear-gradient(135deg,var(--pink),var(--lav));border:none;border-radius:var(--r3);color:var(--white);font-family:'Mitr',sans-serif;font-size:13px;font-weight:600;cursor:pointer}
+.btn-line{display:inline-flex;align-items:center;gap:5px;padding:8px 16px;background:#00b900;border:none;border-radius:var(--r3);color:var(--white);font-family:'Mitr',sans-serif;font-size:12px;font-weight:600;cursor:pointer;margin-right:6px;margin-bottom:7px}
+
+/* PIN */
+.pin-dot{width:13px;height:13px;border-radius:50%;border:2px solid var(--pink3);background:var(--cream);transition:all .18s}
+.pin-dot.filled{background:var(--pink);border-color:var(--pink);transform:scale(1.15)}
+.pin-dot.err{background:#ef4444;border-color:#ef4444}
+.pin-key{height:48px;border-radius:var(--r2);border:2px solid var(--pink3);background:var(--cream);color:var(--text);font-family:'Itim',cursive;font-size:18px;cursor:pointer;transition:all .15s;font-weight:600}
+.pin-key:hover{background:var(--pink4);border-color:var(--pink2)}
+.pin-key:active{transform:scale(.93)}
+.pin-del{background:var(--lav3);border-color:var(--lav2);color:var(--lav);font-size:15px}
+.pin-cancel{background:#ffe4e6;border-color:#ffb3c6;color:#be123c;font-size:15px}
+
+.online-card{background:linear-gradient(135deg,var(--mint),#a7f3d0);border-radius:var(--r);padding:20px;text-align:center;margin-top:7px}
+.online-card p{color:#065f46;font-size:13px;margin-bottom:13px}
+.btn-goto{padding:10px 24px;background:#065f46;border:none;border-radius:var(--r3);color:var(--white);font-family:'Mitr',sans-serif;font-size:13px;cursor:pointer}
+.empty{text-align:center;padding:40px 16px;color:var(--text2)}
+.search-bar{width:100%;background:var(--white);border:2px solid var(--pink3);border-radius:var(--r3);padding:8px 13px;color:var(--text);font-family:'Noto Sans Thai','Mitr',sans-serif;font-size:13px;outline:none;margin-bottom:11px;transition:border-color .2s}
+.search-bar:focus{border-color:var(--pink)}
+@media(max-width:480px){.form-row{grid-template-columns:1fr}.nb{width:30px;height:30px;font-size:10px}.price-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="petal" style="left:5%;animation-duration:7s">&#x1F338;</div>
+<div class="petal" style="left:25%;animation-duration:9s;animation-delay:2s">&#x2728;</div>
+<div class="petal" style="left:60%;animation-duration:8s;animation-delay:1s">&#x1F338;</div>
+<div class="petal" style="left:85%;animation-duration:10s;animation-delay:3s">&#x2728;</div>
+
+<div class="header">
+  <div class="logo-wrap">
+    <div class="logo-icon" id="logoIcon">&#x1F3B0;</div>
+    <div class="logo-text">
+      <h1><span>Sabai</span> Japan Lotto</h1>
+      <div class="logo-sub">&#x1F1FA;&#x1F1F8; US Lottery Booking</div>
+    </div>
+  </div>
+  <div style="margin-top:8px"><span class="line-badge">LINE: @sabajjapanlotto</span></div>
+  <div class="admin-btns">
+    <button class="admin-btn-hd" style="background:linear-gradient(135deg,var(--pink),var(--lav))" onclick="chooseAdmin(1)">&#x1F451; Admin 1</button>
+    <button class="admin-btn-hd" style="background:linear-gradient(135deg,var(--lav),var(--sky))" onclick="chooseAdmin(2)">&#x1F454; Admin 2</button>
+  </div>
+</div>
+
+<div class="admin-bar" id="adminBar">
+  <div class="stat-card"><div class="stat-num" id="sTotal">-</div><div class="stat-label">&#x0E23;&#x0E32;&#x0E22;&#x0E01;&#x0E32;&#x0E23;</div></div>
+  <div class="stat-card"><div class="stat-num" id="sPend" style="color:var(--lav)">-</div><div class="stat-label">&#x0E23;&#x0E2D;&#x0E22;&#x0E37;&#x0E19;&#x0E22;&#x0E31;&#x0E19;</div></div>
+  <div class="stat-card"><div class="stat-num" id="sRev" style="color:var(--peach);font-size:15px">-</div><div class="stat-label">&#x0E23;&#x0E32;&#x0E22;&#x0E23;&#x0E31;&#x0E1A;(&#x0E1A;.)</div></div>
+  <div class="stat-card"><div class="stat-num" id="sProfit" style="color:#10b981;font-size:15px">-</div><div class="stat-label">&#x0E01;&#x0E33;&#x0E44;&#x0E23;(&#x0E1A;.)</div></div>
+</div>
+
+<div class="admin-nav" id="adminNav">
+  <button class="nav-btn" id="navList" onclick="switchTab('list')">&#x1F4CB; &#x0E23;&#x0E32;&#x0E22;&#x0E01;&#x0E32;&#x0E23;</button>
+  <button class="nav-btn" id="navPrice" onclick="switchTab('price')">&#x1F4B0; &#x0E23;&#x0E32;&#x0E04;&#x0E32;</button>
+  <button class="nav-btn logout" onclick="adminLogout()">&#x1F6AA; Log out</button>
+</div>
+
+<!-- BOOK PANEL -->
+<div class="panel active" id="panel-book">
+<div class="wrap" style="padding-top:14px">
+  <div class="sbox">
+    <div class="stitle">&#x1F3AE; &#x0E40;&#x0E25;&#x0E37;&#x0E2D;&#x0E01;&#x0E1B;&#x0E23;&#x0E30;&#x0E40;&#x0E20;&#x0E17;</div>
+    <div class="game-grid" id="gameGrid"></div>
+  </div>
+  <div class="sbox" id="secDate" style="display:none">
+    <div class="stitle">&#x1F4C5; &#x0E07;&#x0E27;&#x0E14; <span class="badge" id="drawHint"></span></div>
+    <div class="draw-days" id="drawDays"></div>
+  </div>
+  <div id="secOnline" style="display:none">
+    <div class="sbox"><div class="stitle">&#x1F310; TX Lotto</div>
+      <div class="online-card"><div style="font-size:40px;margin-bottom:7px">&#x1F5A5;</div>
+        <p>TX Lotto &#x0E0B;&#x0E37;&#x0E49;&#x0E2D;&#x0E1C;&#x0E48;&#x0E32;&#x0E19;&#x0E40;&#x0E27;&#x0E47;&#x0E1A;&#x0E44;&#x0E0B;&#x0E15;&#x0E4C; Texas</p>
+        <button class="btn-goto" onclick="window.open('https://www.txlottery.org','_blank')">&#x0E44;&#x0E1B;&#x0E40;&#x0E27;&#x0E47;&#x0E1A;</button>
+      </div>
+    </div>
+  </div>
+  <div class="sbox" id="secMethod" style="display:none">
+    <div class="stitle">&#x1F3B2; &#x0E27;&#x0E34;&#x0E18;&#x0E35;&#x0E40;&#x0E25;&#x0E37;&#x0E2D;&#x0E01;&#x0E40;&#x0E25;&#x0E02;</div>
+    <div class="method-row">
+      <div class="mpill active" id="mAuto" onclick="setMethod('random')">&#x1F3B2; &#x0E2A;&#x0E38;&#x0E48;&#x0E21;</div>
+      <div class="mpill" id="mManual" onclick="setMethod('manual')">&#x270F; &#x0E40;&#x0E25;&#x0E37;&#x0E2D;&#x0E01;&#x0E40;&#x0E2D;&#x0E07;</div>
+    </div>
+  </div>
+  <div class="sbox" id="secSets" style="display:none">
+    <div class="stitle">&#x1F3AB; &#x0E08;&#x0E33;&#x0E19;&#x0E27;&#x0E19;&#x0E0A;&#x0E38;&#x0E14; <span class="badge">&#x0E2A;&#x0E39;&#x0E07;&#x0E2A;&#x0E38;&#x0E14; 5</span></div>
+    <div class="sets-row">
+      <button class="sets-btn" onclick="chgSets(-1)">-</button>
+      <div class="sets-num" id="setsNum">1</div>
+      <div class="sets-unit">&#x0E0A;&#x0E38;&#x0E14;</div>
+      <div class="sets-price" id="setsPrice">&#x0E1A;&#x0E32;&#x0E17; 0</div>
+    </div>
+  </div>
+  <div class="sbox" id="secPP" style="display:none">
+    <div class="stitle">&#x26A1; Power Play</div>
+    <div class="toggle-row" onclick="togglePP()">
+      <div class="toggle-label">&#x0E40;&#x0E1E;&#x0E34;&#x0E48;&#x0E21; Power Play <small id="ppLabel">+&#x0E1A;&#x0E32;&#x0E17; 0/&#x0E0A;&#x0E38;&#x0E14;</small></div>
+      <div class="toggle" id="ppToggle"></div>
+    </div>
+  </div>
+  <div id="secAllSets" style="display:none"></div>
+  <div class="sbox" id="secInfo" style="display:none">
+    <div class="stitle">&#x1F464; &#x0E02;&#x0E49;&#x0E2D;&#x0E21;&#x0E39;&#x0E25;&#x0E1C;&#x0E39;&#x0E49;&#x0E08;&#x0E2D;&#x0E07;</div>
+    <div class="form-row">
+      <div class="fg"><label>&#x0E0A;&#x0E37;&#x0E48;&#x0E2D;</label><input type="text" id="fName" placeholder="&#x0E0A;&#x0E37;&#x0E48;&#x0E2D;&#x0E1C;&#x0E39;&#x0E49;&#x0E08;&#x0E2D;&#x0E07;"></div>
+      <div class="fg"><label>&#x0E40;&#x0E1A;&#x0E2D;&#x0E23;&#x0E4C;/LINE</label><input type="tel" id="fPhone" placeholder="xxx-xxx-xxxx"></div>
+    </div>
+    <div class="form-row full">
+      <div class="fg"><label>&#x0E2B;&#x0E21;&#x0E32;&#x0E22;&#x0E40;&#x0E2B;&#x0E15;&#x0E38;</label><textarea id="fNote" placeholder="..."></textarea></div>
+    </div>
+  </div>
+  <div id="secSubmit" style="display:none">
+    <button class="btn-submit" id="btnSub" onclick="doSubmit()"><span>&#x2728;</span> &#x0E1A;&#x0E31;&#x0E19;&#x0E17;&#x0E36;&#x0E01;&#x0E23;&#x0E32;&#x0E22;&#x0E01;&#x0E32;&#x0E23;&#x0E08;&#x0E2D;&#x0E07;</button>
+  </div>
+</div>
+</div>
+
+<!-- LIST PANEL -->
+<div class="panel" id="panel-list">
+<div class="wrap" style="padding-top:12px">
+  <div id="adminWhoLabel"></div>
+  <div style="display:flex;gap:7px;margin-bottom:4px">
+    <input class="search-bar" id="searchIn" placeholder="&#x1F50D; &#x0E04;&#x0E49;&#x0E19;&#x0E2B;&#x0E32;..." oninput="filterList()" style="margin-bottom:0">
+    <button class="bk-btn ok" style="white-space:nowrap;padding:8px 12px;border-radius:var(--r3)" onclick="loadList()">&#x1F504;</button>
+  </div>
+  <div id="latestLabel" style="font-size:12px;color:var(--text2);margin:6px 0 4px;display:none"></div>
+  <div id="listWrap"><div class="empty">&#x0E01;&#x0E14; &#x1F504; &#x0E40;&#x0E1E;&#x0E37;&#x0E48;&#x0E2D;&#x0E42;&#x0E2B;&#x0E25;&#x0E14;</div></div>
+</div>
+</div>
+
+<!-- PRICE PANEL -->
+<div class="panel" id="panel-price">
+<div class="wrap" style="padding-top:12px">
+  <div id="priceContent"></div>
+</div>
+</div>
+
+<!-- SUCCESS MODAL -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <div class="modal-anim">&#x1F389;</div>
+    <div class="modal-title">&#x0E08;&#x0E2D;&#x0E07;&#x0E2A;&#x0E33;&#x0E40;&#x0E23;&#x0E47;&#x0E08;!</div>
+    <div style="font-size:11px;color:var(--text2)">&#x0E2B;&#x0E21;&#x0E32;&#x0E22;&#x0E40;&#x0E25;&#x0E02;</div>
+    <div class="modal-id" id="mId">SJL001</div>
+    <div class="modal-price" id="mPrice">&#x0E1A;&#x0E32;&#x0E17; 0</div>
+    <div class="modal-sub">&#x0E02;&#x0E2D;&#x0E1A;&#x0E04;&#x0E38;&#x0E13; Sabai Japan Lotto &#x1F338;</div>
+    <div>
+      <button class="btn-line" onclick="shareLine()">LINE &#x0E41;&#x0E0A;&#x0E23;&#x0E4C;</button>
+      <button class="btn-modal" onclick="closeModal()">&#x0E15;&#x0E01;&#x0E25;&#x0E07; &#x2728;</button>
+    </div>
+  </div>
+</div>
+
+<!-- PIN MODAL -->
+<div id="pinBg" style="display:none;position:fixed;inset:0;background:rgba(92,58,78,.42);backdrop-filter:blur(7px);z-index:2100;align-items:center;justify-content:center">
+  <div style="background:var(--white);border-radius:22px;padding:24px 20px;max-width:290px;width:90%;text-align:center;box-shadow:0 16px 50px rgba(255,139,171,.3);border:2px solid var(--pink3);animation:pop .35s cubic-bezier(.34,1.56,.64,1)">
+    <div style="font-size:42px;margin-bottom:6px" id="pinIcon">&#x1F451;</div>
+    <div style="font-family:Itim,cursive;font-size:18px;color:var(--pink);margin-bottom:3px" id="pinTitle">Admin 1</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:14px">PIN 4 &#x0E2B;&#x0E25;&#x0E31;&#x0E01;</div>
+    <div style="display:flex;justify-content:center;gap:10px;margin-bottom:13px">
+      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:200px;margin:0 auto 12px">
+      <button class="pin-key" onclick="pk(1)">1</button><button class="pin-key" onclick="pk(2)">2</button><button class="pin-key" onclick="pk(3)">3</button>
+      <button class="pin-key" onclick="pk(4)">4</button><button class="pin-key" onclick="pk(5)">5</button><button class="pin-key" onclick="pk(6)">6</button>
+      <button class="pin-key" onclick="pk(7)">7</button><button class="pin-key" onclick="pk(8)">8</button><button class="pin-key" onclick="pk(9)">9</button>
+      <button class="pin-key pin-del" onclick="pDel()">&#x232B;</button>
+      <button class="pin-key" onclick="pk(0)">0</button>
+      <button class="pin-key pin-cancel" onclick="closePin()">&#x2715;</button>
+    </div>
+    <div id="pinErr" style="font-size:11px;color:#ef4444;min-height:16px"></div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+// ── SUPABASE CONFIG ─────────────────────────────
+const SUPA_URL = 'https://jbxvloruouddlkovdoot.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpieHZsb3J1b3VkZGxrb3Zkb290Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0ODk2NzUsImV4cCI6MjA5NjA2NTY3NX0.Upe10fvcSE39KrGZO3C6i9TiuJV_ajFswm6lABJ2w9w';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ── GAME RULES ──────────────────────────────────
+const GAMES = {
+  powerball:    {key:'powerball',    name:'Power Ball',     emoji:'&#x1F534;', color:'#ff6b8a', mainCount:5,  mainMax:69, bonusCount:1, bonusMax:26, bonusLabel:'Power Ball', hasPP:true,  drawDays:['MO','WE','SA']},
+  mega:         {key:'mega',         name:'Mega Millions',  emoji:'&#x1F7E1;', color:'#f9a825', mainCount:5,  mainMax:70, bonusCount:1, bonusMax:25, bonusLabel:'Mega Ball',   hasPP:false, drawDays:['TU','FR']},
+  txtwostep:    {key:'txtwostep',    name:'TX Two Step',    emoji:'&#x1F535;', color:'#42a5f5', mainCount:4,  mainMax:35, bonusCount:1, bonusMax:35, bonusLabel:'Bonus Ball',  hasPP:false, drawDays:['MO','TH']},
+  txlotto:      {key:'txlotto',      name:'TX Lotto',       emoji:'&#x1F7E2;', color:'#66bb6a', mainCount:6,  mainMax:54, bonusCount:0, bonusMax:0,  bonusLabel:'',            hasPP:false, drawDays:['MO','WE','SA'], onlineOnly:true},
+  allornothing: {key:'allornothing', name:'All or Nothing', emoji:'&#x26AB;',  color:'#8d6e63', mainCount:12, mainMax:24, bonusCount:0, bonusMax:0,  bonusLabel:'',            hasPP:false, drawDays:['MO','TU','WE','TH','FR','SA']},
+};
+
+// ── STATE ───────────────────────────────────────
+var PRICES = {};
+var ADMIN = {role:0};
+var PINS = {1:'1567', 2:'2810'};
+var _pTarget=0, _pVal='';
+var DAY_MAP={MO:'Mon',TU:'Tue',WE:'Wed',TH:'Thu',FR:'Fri',SA:'Sat',SU:'Sun'};
+var S = {game:null,drawDate:'',method:'random',setsData:[{mainSel:[],bonusSel:[]}],powerPlay:false,sets:1,lastId:'',lastTotal:0};
+
+// ── INIT ────────────────────────────────────────
+async function init() {
+  await loadPrices();
+  buildGameGrid();
+}
+init();
+
+async function loadPrices() {
+  var {data} = await sb.from('prices').select('*');
+  if (data) data.forEach(function(p){ PRICES[p.game_key] = p; });
+}
+
+function buildGameGrid() {
+  var el=document.getElementById('gameGrid'), html='', keys=Object.keys(GAMES);
+  for (var i=0;i<keys.length;i++) {
+    var g=GAMES[keys[i]], p=PRICES[g.key]||{};
+    var priceLabel = p.sell_price>0 ? '&#x0E1A;&#x0E32;&#x0E17; '+p.sell_price : '&#x0E1A;&#x0E32;&#x0E17; -';
+    html += '<div class="game-card" style="--gc:'+g.color+'" onclick="pickGame(\''+g.key+'\')">';
+    html += '<span class="game-emoji">'+g.emoji+'</span>';
+    html += '<div class="game-name">'+g.name+'</div>';
+    html += '<div class="game-price">'+priceLabel+'</div></div>';
+  }
+  document.getElementById('gameGrid').innerHTML = html;
+}
+
+// ── PICK GAME ───────────────────────────────────
+function pickGame(key) {
+  S.game=key; S.setsData=[{mainSel:[],bonusSel:[]}]; S.powerPlay=false; S.sets=1;
+  var g=GAMES[key];
+  document.querySelectorAll('.game-card').forEach(function(c,i){
+    c.classList.toggle('sel', Object.keys(GAMES)[i]===key);
+  });
+  var hide=['secDate','secOnline','secMethod','secSets','secPP','secAllSets','secInfo','secSubmit'];
+  hide.forEach(function(id){ document.getElementById(id).style.display='none'; });
+  if (g.onlineOnly) { document.getElementById('secOnline').style.display='block'; return; }
+  document.getElementById('secDate').style.display='block';
+  document.getElementById('drawHint').textContent = g.drawDays.map(function(d){return DAY_MAP[d]||d;}).join(' / ');
+  buildDrawDays(g);
+  document.getElementById('secMethod').style.display='block';
+  setMethod('random', true);
+  updateSets();
+  ['secSets','secAllSets','secInfo','secSubmit'].forEach(function(id){ document.getElementById(id).style.display='block'; });
+  if (g.hasPP) {
+    document.getElementById('secPP').style.display='block';
+    var p=PRICES[key]||{};
+    document.getElementById('ppLabel').textContent='+&#x0E1A;&#x0E32;&#x0E17; '+(p.pp_sell||0)+'/&#x0E0A;&#x0E38;&#x0E14;';
+  }
+}
+
+function buildDrawDays(g) {
+  var days=[], today=new Date();
+  for (var d=0;d<28&&days.length<4;d++) {
+    var dt=new Date(today); dt.setDate(today.getDate()+d);
+    var dn=['SU','MO','TU','WE','TH','FR','SA'][dt.getDay()];
+    if (g.drawDays.indexOf(dn)>-1)
+      days.push({label:dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}),val:dt.toLocaleDateString('en-US')});
+  }
+  var html='';
+  days.forEach(function(d,i){
+    html+='<div class="day-pill'+(i===0?' active':'')+'" onclick="pickDate(this,\''+d.val+'\')">'+d.label+'</div>';
+  });
+  document.getElementById('drawDays').innerHTML=html;
+  S.drawDate=days.length?days[0].val:'';
+}
+
+function pickDate(el,val) {
+  document.querySelectorAll('.day-pill').forEach(function(p){p.classList.remove('active');});
+  el.classList.add('active'); S.drawDate=val;
+}
+
+// ── METHOD ──────────────────────────────────────
+function setMethod(m, silent) {
+  if (!S.game) return;
+  S.method=m;
+  document.getElementById('mAuto').classList.toggle('active',m==='random');
+  document.getElementById('mManual').classList.toggle('active',m==='manual');
+  S.setsData=[];
+  for (var i=0;i<S.sets;i++) S.setsData.push({mainSel:[],bonusSel:[]});
+  if (m==='random') {
+    var g=GAMES[S.game];
+    for (var i=0;i<S.sets;i++) {
+      S.setsData[i].mainSel=rnd(g.mainMax,g.mainCount);
+      S.setsData[i].bonusSel=g.bonusCount>0?rnd(g.bonusMax,g.bonusCount):[];
+    }
+  }
+  renderAllSets();
+}
+
+// ── SETS ────────────────────────────────────────
+function chgSets(d) {
+  S.sets=Math.max(1,Math.min(5,S.sets+d));
+  while (S.setsData.length<S.sets) S.setsData.push({mainSel:[],bonusSel:[]});
+  S.setsData=S.setsData.slice(0,S.sets);
+  if (S.method==='random') {
+    var g=GAMES[S.game];
+    for (var i=0;i<S.sets;i++) {
+      if (!S.setsData[i].mainSel.length) {
+        S.setsData[i].mainSel=rnd(g.mainMax,g.mainCount);
+        S.setsData[i].bonusSel=g.bonusCount>0?rnd(g.bonusMax,g.bonusCount):[];
+      }
+    }
+  }
+  updateSets(); renderAllSets();
+}
+
+function updateSets() {
+  if (!S.game) return;
+  var p=PRICES[S.game]||{}, up=(p.sell_price||0)+(S.powerPlay?(p.pp_sell||0):0);
+  document.getElementById('setsNum').textContent=S.sets;
+  document.getElementById('setsPrice').textContent='&#x0E1A;&#x0E32;&#x0E17; '+(up*S.sets);
+}
+
+function togglePP() {
+  S.powerPlay=!S.powerPlay;
+  document.getElementById('ppToggle').classList.toggle('on',S.powerPlay);
+  updateSets();
+}
+
+// ── RENDER ALL SETS ─────────────────────────────
+function renderAllSets() {
+  if (!S.game) return;
+  var g=GAMES[S.game], wrap=document.getElementById('secAllSets'), html='';
+  for (var i=0;i<S.sets;i++) {
+    var sd=S.setsData[i];
+    html+='<div class="sbox" style="margin-bottom:10px">';
+    html+='<div class="stitle">&#x1F3AB; &#x0E0A;&#x0E38;&#x0E14;&#x0E17;&#x0E35;&#x0E48; '+(i+1);
+    if (S.method==='random')
+      html+=' <button onclick="reRandSet('+i+')" style="margin-left:auto;background:linear-gradient(135deg,var(--lav),var(--pink));border:none;border-radius:var(--r3);color:#fff;font-family:Mitr,sans-serif;font-size:11px;padding:3px 12px;cursor:pointer">&#x1F3B2; &#x0E2A;&#x0E38;&#x0E48;&#x0E21;&#x0E43;&#x0E2B;&#x0E21;&#x0E48;</button>';
+    html+='</div>';
+    if (S.method==='random') {
+      html+='<div class="ball-display" id="setBalls'+i+'">';
+      sd.mainSel.slice().sort(function(a,b){return a-b;}).forEach(function(n){html+='<div class="ball main">'+(n<10?'0':'')+n+'</div>';});
+      if (sd.bonusSel.length){html+='<div style="color:var(--pink2);font-size:16px;margin:0 2px">+</div>';sd.bonusSel.forEach(function(n){html+='<div class="ball bonus">'+(n<10?'0':'')+n+'</div>';});}
+      html+='</div>';
+    } else {
+      html+='<div style="font-size:12px;color:var(--text2);margin-bottom:7px">&#x0E40;&#x0E25;&#x0E37;&#x0E2D;&#x0E01; <b>'+g.mainCount+'</b> &#x0E40;&#x0E25;&#x0E02;&#x0E2B;&#x0E25;&#x0E31;&#x0E01;</div>';
+      html+='<div class="num-grid">';
+      for (var n=1;n<=g.mainMax;n++){
+        var sel=sd.mainSel.indexOf(n)>-1, dim=!sel&&sd.mainSel.length>=g.mainCount;
+        html+='<div class="nb'+(sel?' sel':'')+(dim?' dimmed':'')+'\" onclick="togN('+i+','+n+',false)">'+(n<10?'0':'')+n+'</div>';
+      }
+      html+='</div>';
+      if (g.bonusCount>0){
+        html+='<div class="divider" style="margin:8px 0"><span>'+g.bonusLabel+'</span></div>';
+        html+='<div class="num-grid">';
+        for (var n=1;n<=g.bonusMax;n++){
+          var sel=sd.bonusSel.indexOf(n)>-1, dim=!sel&&sd.bonusSel.length>=g.bonusCount;
+          html+='<div class="nb'+(sel?' bsel':'')+(dim?' dimmed':'')+'\" onclick="togN('+i+','+n+',true)">'+(n<10?'0':'')+n+'</div>';
+        }
+        html+='</div>';
+      }
+      html+='<div class="ball-display" style="margin-top:8px">';
+      if (sd.mainSel.length) {
+        sd.mainSel.slice().sort(function(a,b){return a-b;}).forEach(function(n){html+='<div class="ball main">'+(n<10?'0':'')+n+'</div>';});
+        if (sd.bonusSel.length){html+='<div style="color:var(--pink2);font-size:16px;margin:0 2px">+</div>';sd.bonusSel.forEach(function(n){html+='<div class="ball bonus">'+(n<10?'0':'')+n+'</div>';});}
+      } else { html+='<span style="color:var(--text3);font-size:12px">-</span>'; }
+      html+='</div>';
+    }
+    html+='</div>';
+  }
+  wrap.innerHTML=html;
+}
+
+function reRandSet(i) {
+  var g=GAMES[S.game];
+  S.setsData[i].mainSel=rnd(g.mainMax,g.mainCount);
+  S.setsData[i].bonusSel=g.bonusCount>0?rnd(g.bonusMax,g.bonusCount):[];
+  renderAllSets();
+}
+
+function togN(si,n,isBonus) {
+  var g=GAMES[S.game], sd=S.setsData[si];
+  var arr=isBonus?sd.bonusSel:sd.mainSel, max=isBonus?g.bonusCount:g.mainCount;
+  var idx=arr.indexOf(n);
+  if (idx>-1) arr.splice(idx,1);
+  else { if (arr.length>=max){toast('Max '+max,'info');return;} arr.push(n); }
+  renderAllSets();
+}
+
+function rnd(max,n){
+  var p=[];for(var i=1;i<=max;i++)p.push(i);
+  for(var i=p.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=p[i];p[i]=p[j];p[j]=t;}
+  return p.slice(0,n).sort(function(a,b){return a-b;});
+}
+
+// ── SUBMIT ──────────────────────────────────────
+async function doSubmit() {
+  if (!S.game){toast('&#x0E40;&#x0E25;&#x0E37;&#x0E2D;&#x0E01;&#x0E40;&#x0E01;&#x0E21;&#x0E01;&#x0E48;&#x0E2D;&#x0E19;','err');return;}
+  if (!S.drawDate){toast('&#x0E40;&#x0E25;&#x0E37;&#x0E2D;&#x0E01;&#x0E07;&#x0E27;&#x0E14;&#x0E01;&#x0E48;&#x0E2D;&#x0E19;','err');return;}
+  var g=GAMES[S.game];
+  for (var i=0;i<S.setsData.length;i++){
+    var sd=S.setsData[i];
+    if (sd.mainSel.length!==g.mainCount){toast('&#x0E0A;&#x0E38;&#x0E14;'+(i+1)+': &#x0E40;&#x0E25;&#x0E37;&#x0E2D;&#x0E01;&#x0E40;&#x0E25;&#x0E02;&#x0E43;&#x0E2B;&#x0E49;&#x0E04;&#x0E23;&#x0E1A; '+g.mainCount,'err');return;}
+    if (g.bonusCount>0&&sd.bonusSel.length!==g.bonusCount){toast('&#x0E0A;&#x0E38;&#x0E14;'+(i+1)+': &#x0E40;&#x0E25;&#x0E37;&#x0E2D;&#x0E01; '+g.bonusLabel,'err');return;}
+  }
+  var btn=document.getElementById('btnSub');
+  btn.disabled=true; btn.innerHTML='<span>&#x23F3;</span> &#x0E1A;&#x0E31;&#x0E19;&#x0E17;&#x0E36;&#x0E01;...';
+  var p=PRICES[S.game]||{};
+  var unitSell=(p.sell_price||0)+(S.powerPlay?(p.pp_sell||0):0);
+  var unitCost=(p.cost_price||0)+(S.powerPlay?(p.pp_cost||0):0);
+  var id='SJL'+Date.now().toString(36).toUpperCase();
+  var {error} = await sb.from('bookings').insert({
+    id: id,
+    customer_name: document.getElementById('fName').value,
+    customer_phone: document.getElementById('fPhone').value,
+    game_key: S.game,
+    game_name: GAMES[S.game].name,
+    draw_date: S.drawDate,
+    sets_data: S.setsData,
+    sets_count: S.sets,
+    method: S.method,
+    power_play: S.powerPlay,
+    sell_price: unitSell,
+    cost_price: unitCost,
+    total_sell: unitSell*S.sets,
+    total_cost: unitCost*S.sets,
+    note: document.getElementById('fNote').value,
+    status: 'pending'
+  });
+  if (error) {
+    toast('&#x0E1A;&#x0E31;&#x0E19;&#x0E17;&#x0E36;&#x0E01;&#x0E44;&#x0E21;&#x0E48;&#x0E2A;&#x0E33;&#x0E40;&#x0E23;&#x0E47;&#x0E08;: '+error.message,'err');
+    btn.disabled=false; btn.innerHTML='<span>&#x2728;</span> &#x0E1A;&#x0E31;&#x0E19;&#x0E17;&#x0E36;&#x0E01;&#x0E23;&#x0E32;&#x0E22;&#x0E01;&#x0E32;&#x0E23;&#x0E08;&#x0E2D;&#x0E07;';
+    return;
+  }
+  S.lastId=id; S.lastTotal=unitSell*S.sets;
+  document.getElementById('mId').textContent=id;
+  document.getElementById('mPrice').textContent='&#x0E1A;&#x0E32;&#x0E17; '+(unitSell*S.sets);
+  document.getElementById('modalBg').classList.add('show');
+  resetForm();
+}
+
+function closeModal(){document.getElementById('modalBg').classList.remove('show');var btn=document.getElementById('btnSub');btn.disabled=false;btn.innerHTML='<span>&#x2728;</span> &#x0E1A;&#x0E31;&#x0E19;&#x0E17;&#x0E36;&#x0E01;&#x0E23;&#x0E32;&#x0E22;&#x0E01;&#x0E32;&#x0E23;&#x0E08;&#x0E2D;&#x0E07;';}
+function shareLine(){window.open('https://line.me/R/msg/text/?'+encodeURIComponent('&#x0E08;&#x0E2D;&#x0E07;&#x0E25;&#x0E2D;&#x0E15;&#x0E40;&#x0E15;&#x0E2D;&#x0E23;&#x0E35;&#x0E48;\nID: '+S.lastId+'\n&#x0E40;&#x0E01;&#x0E21;: '+(GAMES[S.game]||{name:''}).name+'\n&#x0E22;&#x0E2D;&#x0E14;: &#x0E1A;&#x0E32;&#x0E17; '+S.lastTotal),'_blank');}
+
+function resetForm(){
+  S.game=null;S.setsData=[{mainSel:[],bonusSel:[]}];S.powerPlay=false;S.sets=1;S.drawDate='';
+  document.querySelectorAll('.game-card').forEach(function(c){c.classList.remove('sel');});
+  ['secDate','secOnline','secMethod','secSets','secPP','secAllSets','secInfo','secSubmit'].forEach(function(id){document.getElementById(id).style.display='none';});
+  document.getElementById('fName').value='';document.getElementById('fPhone').value='';document.getElementById('fNote').value='';
+}
+
+// ── ADMIN AUTH ──────────────────────────────────
+function chooseAdmin(n){_pTarget=n;_pVal='';document.getElementById('pinTitle').textContent='Admin '+n;document.getElementById('pinIcon').innerHTML=n===1?'&#x1F451;':'&#x1F454;';document.getElementById('pinErr').textContent='';updDots();document.getElementById('pinBg').style.display='flex';}
+function closePin(){document.getElementById('pinBg').style.display='none';_pVal='';}
+function pk(n){if(_pVal.length>=4)return;_pVal+=String(n);updDots();if(_pVal.length===4)setTimeout(checkPin,160);}
+function pDel(){_pVal=_pVal.slice(0,-1);updDots();document.getElementById('pinErr').textContent='';}
+function updDots(){for(var i=0;i<4;i++){var d=document.getElementById('pd'+i);d.classList.toggle('filled',i<_pVal.length);d.classList.remove('err');}}
+function checkPin(){
+  if (_pVal===PINS[_pTarget]){
+    document.getElementById('pinBg').style.display='none';
+    ADMIN.role=_pTarget;
+    document.getElementById('adminNav').classList.add('show');
+    document.getElementById('adminWhoLabel').innerHTML='<span class="admin-label">&#x1F451; Admin '+_pTarget+' Mode</span>';
+    if (_pTarget===1) document.getElementById('adminBar').classList.add('show');
+    switchTab('list'); loadStats();
+    toast('Welcome Admin '+_pTarget+' &#x1F338;','ok');
+  } else {
+    for(var i=0;i<4;i++) document.getElementById('pd'+i).classList.add('err');
+    document.getElementById('pinErr').textContent='PIN &#x0E44;&#x0E21;&#x0E48;&#x0E16;&#x0E39;&#x0E01;';
+    setTimeout(function(){_pVal='';updDots();document.getElementById('pinErr').textContent='';},900);
+  }
+}
+function adminLogout(){
+  ADMIN.role=0;
+  document.getElementById('adminBar').classList.remove('show');
+  document.getElementById('adminNav').classList.remove('show');
+  document.getElementById('panel-book').classList.add('active');
+  document.getElementById('panel-list').classList.remove('active');
+  document.getElementById('panel-price').classList.remove('active');
+  toast('&#x0E2D;&#x0E2D;&#x0E01;&#x0E08;&#x0E32;&#x0E01; Admin &#x0E41;&#x0E25;&#x0E49;&#x0E27;','ok');
+}
+
+// ── TABS ────────────────────────────────────────
+function switchTab(t){
+  ['book','list','price'].forEach(function(p){
+    document.getElementById('panel-'+p).classList.toggle('active',p===t);
+  });
+  document.querySelectorAll('.nav-btn:not(.logout)').forEach(function(b){b.classList.remove('active');});
+  var nb=document.getElementById('nav'+t.charAt(0).toUpperCase()+t.slice(1));
+  if(nb) nb.classList.add('active');
+  if(t==='list') loadList();
+  if(t==='price') loadPricePanel();
+}
+
+// ── LIST ────────────────────────────────────────
+var _bks=[];
+async function loadList(){
+  document.getElementById('listWrap').innerHTML='<div class="empty">&#x23F3;</div>';
+  var query = sb.from('bookings').select('*').order('created_at',{ascending:false});
+  if (ADMIN.role===2) {
+    // Admin2: latest draw date only
+    var {data:all} = await sb.from('bookings').select('draw_date').order('draw_date',{ascending:false}).limit(1);
+    var latest = all&&all.length ? all[0].draw_date : '';
+    if (latest) {
+      document.getElementById('latestLabel').textContent='&#x1F4C5; &#x0E07;&#x0E27;&#x0E14;&#x0E25;&#x0E48;&#x0E32;&#x0E2A;&#x0E38;&#x0E14;: '+latest;
+      document.getElementById('latestLabel').style.display='block';
+      query = sb.from('bookings').select('*').eq('draw_date',latest).order('created_at',{ascending:false});
+    }
+  } else {
+    document.getElementById('latestLabel').style.display='none';
+  }
+  var {data} = await query.limit(200);
+  _bks = data||[];
+  filterList();
+}
+
+function filterList(){
+  var q=document.getElementById('searchIn').value.toLowerCase();
+  var f=_bks.filter(function(b){return(b.id||'').toLowerCase().includes(q)||(b.customer_name||'').toLowerCase().includes(q)||(b.game_name||'').toLowerCase().includes(q);});
+  renderList(f);
+}
+
+function renderList(list){
+  var el=document.getElementById('listWrap');
+  if(!list.length){el.innerHTML='<div class="empty">&#x1F39F; &#x0E44;&#x0E21;&#x0E48;&#x0E21;&#x0E35;&#x0E23;&#x0E32;&#x0E22;&#x0E01;&#x0E32;&#x0E23;</div>';return;}
+  var isA1=ADMIN.role===1, html='';
+  list.forEach(function(b){
+    var st=b.status||'pending';
+    var sc=st==='confirmed'?'confirmed':st==='cancelled'?'cancelled':'pending';
+    var stTh=st==='confirmed'?'&#x0E22;&#x0E37;&#x0E19;&#x0E22;&#x0E31;&#x0E19;&#x0E41;&#x0E25;&#x0E49;&#x0E27;':st==='cancelled'?'&#x0E22;&#x0E01;&#x0E40;&#x0E25;&#x0E34;&#x0E01;':'&#x0E23;&#x0E2D;&#x0E22;&#x0E37;&#x0E19;&#x0E22;&#x0E31;&#x0E19;';
+    var balls='';
+    var setsData=b.sets_data||[];
+    setsData.forEach(function(sd,si){
+      if(si>0) balls+='<div style="width:100%;height:1px;background:var(--pink3);margin:3px 0"></div>';
+      (sd.mainSel||[]).forEach(function(n){balls+='<div class="bk-ball m">'+(n<10?'0':'')+n+'</div>';});
+      if((sd.bonusSel||[]).length){balls+='<div style="font-size:12px;color:var(--pink2)">+</div>';(sd.bonusSel||[]).forEach(function(n){balls+='<div class="bk-ball b">'+(n<10?'0':'')+n+'</div>';});}
+    });
+    html+='<div class="bk-card">';
+    if(isA1){
+      var profit=(b.total_sell||0)-(b.total_cost||0);
+      html+='<div class="bk-top"><div><div class="bk-id">'+b.id+'</div><div class="bk-game">'+b.game_name+'</div></div><span class="status-tag '+sc+'">'+stTh+'</span></div>';
+      html+='<div class="bk-balls">'+balls+'</div>';
+      html+='<div class="bk-meta"><span>&#x1F464; '+(b.customer_name||'-')+'</span><span>&#x1F4C5; '+(b.draw_date||'-')+'</span><span>'+(b.sets_count||1)+' &#x0E0A;&#x0E38;&#x0E14;</span><span style="color:var(--peach)">&#x0E1A;&#x0E32;&#x0E17; '+(b.total_sell||0)+'</span><span style="color:#10b981">&#x0E01;&#x0E33;&#x0E44;&#x0E23; &#x0E1A;&#x0E32;&#x0E17; '+profit+'</span></div>';
+      html+='<div class="bk-actions">';
+      if(st!=='confirmed') html+='<button class="bk-btn ok" onclick="updStatus(\''+b.id+'\',\'confirmed\')">&#x2705; &#x0E22;&#x0E37;&#x0E19;&#x0E22;&#x0E31;&#x0E19;</button>';
+      if(st!=='cancelled') html+='<button class="bk-btn no" onclick="updStatus(\''+b.id+'\',\'cancelled\')">&#x274C; &#x0E22;&#x0E01;&#x0E40;&#x0E25;&#x0E34;&#x0E01;</button>';
+      html+='</div>';
+    } else {
+      html+='<div class="bk-top"><div><div class="bk-game">'+b.game_name+'</div></div></div>';
+      html+='<div style="font-size:13px;font-weight:600;margin-bottom:5px">'+(b.customer_name||'-')+'</div>';
+      html+='<div class="bk-balls">'+balls+'</div>';
+      html+='<div class="bk-meta"><span>&#x1F4C5; '+(b.draw_date||'-')+'</span><span>'+(b.sets_count||1)+' &#x0E0A;&#x0E38;&#x0E14;</span></div>';
+    }
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+
+async function updStatus(id,status){
+  var {error}=await sb.from('bookings').update({status:status,updated_at:new Date().toISOString()}).eq('id',id);
+  if(!error){toast('&#x0E2D;&#x0E31;&#x0E1E;&#x0E40;&#x0E14;&#x0E15;&#x0E41;&#x0E25;&#x0E49;&#x0E27; &#x1F338;','ok');loadList();loadStats();}
+  else toast('Error','err');
+}
+
+// ── STATS ───────────────────────────────────────
+async function loadStats(){
+  if(ADMIN.role!==1) return;
+  var {data}=await sb.from('bookings').select('status,total_sell,total_cost');
+  if(!data) return;
+  var total=data.length, pending=0, rev=0, cost=0;
+  data.forEach(function(b){if(b.status==='pending')pending++;rev+=b.total_sell||0;cost+=b.total_cost||0;});
+  document.getElementById('sTotal').textContent=total;
+  document.getElementById('sPend').textContent=pending;
+  document.getElementById('sRev').textContent='&#x0E1A;.'+rev;
+  document.getElementById('sProfit').textContent='&#x0E1A;.'+(rev-cost);
+}
+
+// ── PRICE PANEL ─────────────────────────────────
+async function loadPricePanel(){
+  await loadPrices();
+  var el=document.getElementById('priceContent'), isA1=ADMIN.role===1, html='';
+  if(isA1){
+    html+='<div class="section-hd">&#x1F4B0; &#x0E15;&#x0E31;&#x0E49;&#x0E07;&#x0E23;&#x0E32;&#x0E04;&#x0E32;&#x0E02;&#x0E32;&#x0E22; (&#x0E1A;&#x0E32;&#x0E17;)</div>';
+    html+='<div class="price-grid">';
+    Object.values(GAMES).forEach(function(g){
+      var p=PRICES[g.key]||{};
+      html+='<div class="price-row"><div class="game-lbl">'+g.emoji+' '+g.name+'</div>';
+      html+='<div class="price-inp-label">&#x0E23;&#x0E32;&#x0E04;&#x0E32;&#x0E02;&#x0E32;&#x0E22;/&#x0E0A;&#x0E38;&#x0E14;</div>';
+      html+='<input class="price-inp" type="number" id="sell_'+g.key+'" value="'+(p.sell_price||0)+'" min="0">';
+      if(g.hasPP){
+        html+='<div class="price-inp-label">Power Play &#x0E02;&#x0E32;&#x0E22;</div>';
+        html+='<input class="price-inp" type="number" id="ppsell_'+g.key+'" value="'+(p.pp_sell||0)+'" min="0">';
+      }
+      html+='</div>';
+    });
+    html+='</div>';
+    html+='<button class="btn-save-price" onclick="saveSellPrices()">&#x1F4BE; &#x0E1A;&#x0E31;&#x0E19;&#x0E17;&#x0E36;&#x0E01;&#x0E23;&#x0E32;&#x0E04;&#x0E32;&#x0E02;&#x0E32;&#x0E22;</button>';
+    html+='<div class="section-hd" style="margin-top:20px">&#x1F4CA; &#x0E15;&#x0E49;&#x0E19;&#x0E17;&#x0E38;&#x0E19; (&#x0E08;&#x0E32;&#x0E01; Admin 2)</div>';
+    html+='<div class="price-grid">';
+    Object.values(GAMES).forEach(function(g){
+      var p=PRICES[g.key]||{};
+      var profit=(p.sell_price||0)-(p.cost_price||0);
+      html+='<div class="price-row"><div class="game-lbl">'+g.emoji+' '+g.name+'</div>';
+      html+='<div class="profit-box"><div><div class="lbl">&#x0E15;&#x0E49;&#x0E19;&#x0E17;&#x0E38;&#x0E19;</div><div class="val" style="color:var(--peach)">&#x0E1A;.'+(p.cost_price||0)+'</div></div>';
+      html+='<div><div class="lbl">&#x0E01;&#x0E33;&#x0E44;&#x0E23;/&#x0E0A;&#x0E38;&#x0E14;</div><div class="val" style="color:#10b981">&#x0E1A;.'+profit+'</div></div></div></div>';
+    });
+    html+='</div>';
+  } else {
+    html+='<div class="section-hd">&#x1F4B8; &#x0E15;&#x0E31;&#x0E49;&#x0E07;&#x0E23;&#x0E32;&#x0E04;&#x0E32;&#x0E17;&#x0E38;&#x0E19; (&#x0E1A;&#x0E32;&#x0E17;)</div>';
+    html+='<div class="price-grid">';
+    Object.values(GAMES).forEach(function(g){
+      var p=PRICES[g.key]||{};
+      html+='<div class="price-row"><div class="game-lbl">'+g.emoji+' '+g.name+'</div>';
+      html+='<div class="price-inp-label">&#x0E15;&#x0E49;&#x0E19;&#x0E17;&#x0E38;&#x0E19;/&#x0E0A;&#x0E38;&#x0E14;</div>';
+      html+='<input class="price-inp" type="number" id="cost_'+g.key+'" value="'+(p.cost_price||0)+'" min="0">';
+      if(g.hasPP){
+        html+='<div class="price-inp-label">Power Play &#x0E17;&#x0E38;&#x0E19;</div>';
+        html+='<input class="price-inp" type="number" id="ppcost_'+g.key+'" value="'+(p.pp_cost||0)+'" min="0">';
+      }
+      html+='</div>';
+    });
+    html+='</div>';
+    html+='<button class="btn-save-price" onclick="saveCostPrices()">&#x1F4BE; &#x0E1A;&#x0E31;&#x0E19;&#x0E17;&#x0E36;&#x0E01;&#x0E23;&#x0E32;&#x0E04;&#x0E32;&#x0E17;&#x0E38;&#x0E19;</button>';
+  }
+  el.innerHTML=html;
+}
+
+async function saveSellPrices(){
+  var updates=Object.keys(GAMES).map(function(k){
+    return {game_key:k,sell_price:parseFloat(document.getElementById('sell_'+k).value)||0,pp_sell:document.getElementById('ppsell_'+k)?parseFloat(document.getElementById('ppsell_'+k).value)||0:0};
+  });
+  for(var i=0;i<updates.length;i++){
+    await sb.from('prices').update({sell_price:updates[i].sell_price,pp_sell:updates[i].pp_sell,updated_at:new Date().toISOString()}).eq('game_key',updates[i].game_key);
+  }
+  await loadPrices(); buildGameGrid();
+  toast('&#x0E1A;&#x0E31;&#x0E19;&#x0E17;&#x0E36;&#x0E01;&#x0E41;&#x0E25;&#x0E49;&#x0E27; &#x1F338;','ok');
+  loadPricePanel();
+}
+
+async function saveCostPrices(){
+  var updates=Object.keys(GAMES).map(function(k){
+    return {game_key:k,cost_price:parseFloat(document.getElementById('cost_'+k).value)||0,pp_cost:document.getElementById('ppcost_'+k)?parseFloat(document.getElementById('ppcost_'+k).value)||0:0};
+  });
+  for(var i=0;i<updates.length;i++){
+    await sb.from('prices').update({cost_price:updates[i].cost_price,pp_cost:updates[i].pp_cost,updated_at:new Date().toISOString()}).eq('game_key',updates[i].game_key);
+  }
+  toast('&#x0E1A;&#x0E31;&#x0E19;&#x0E17;&#x0E36;&#x0E01;&#x0E41;&#x0E25;&#x0E49;&#x0E27; &#x1F338;','ok');
+  loadPricePanel();
+}
+
+// ── TOAST ───────────────────────────────────────
+function toast(msg,type){
+  type=type||'info';
+  var el=document.createElement('div');
+  el.className='toast'+(type==='err'?' err':type==='ok'?' ok':'');
+  el.innerHTML='<span>'+(type==='ok'?'&#x1F338;':type==='err'?'&#x274C;':'&#x2728;')+'</span><span>'+msg+'</span>';
+  document.getElementById('toastWrap').appendChild(el);
+  setTimeout(function(){el.remove();},3000);
+}
+</script>
+</body>
+</html>
