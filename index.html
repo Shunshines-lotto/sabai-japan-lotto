@@ -265,22 +265,22 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <div class="empty">📂 ยังไม่มีรูปใบสุ่ม</div>
   </div>
   <div class="sbox" id="secSets" style="display:none">
-    <div class="stitle">🎫 จำนวนชุด <span class="badge">สูงสุด 5</span></div>
+    <div class="stitle">🎫 จำนวนแถว <span class="badge">สูงสุด 5</span></div>
     <div style="display:flex;align-items:center;justify-content:space-between;background:var(--cream);border:2px solid var(--pink3);border-radius:var(--r);padding:10px 13px">
       <div style="display:flex;align-items:center;gap:10px">
         <div style="font-family:Itim,cursive;font-size:22px;color:var(--pink)" id="setsNum">1</div>
-        <div style="font-size:12px;color:var(--text2)">ชุด</div>
+        <div style="font-size:12px;color:var(--text2)">แถว</div>
       </div>
       <div style="font-family:Itim,cursive;font-size:18px;color:var(--lav)" id="setsPrice">บาท 0</div>
     </div>
     <button id="btnAddSet" onclick="addSet()" style="width:100%;margin-top:10px;padding:11px;background:linear-gradient(135deg,var(--lav),var(--pink));border:none;border-radius:var(--r3);color:#fff;font-family:Mitr,sans-serif;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 3px 12px var(--shadow2);display:flex;align-items:center;justify-content:center;gap:6px">
-      ➕ เพิ่มชุดใหม่
+      ➕ เพิ่มแถวใหม่
     </button>
   </div>
   <div class="sbox" id="secPP" style="display:none">
     <div class="stitle">⚡ Power Play</div>
     <div class="toggle-row" onclick="togglePP()">
-      <div class="toggle-label">เพิ่ม Power Play <small id="ppLabel">+บาท 0/ชุด</small></div>
+      <div class="toggle-label">เพิ่ม Power Play <small id="ppLabel">+บาท 0/แถว</small></div>
       <div class="toggle" id="ppToggle"></div>
     </div>
   </div>
@@ -589,7 +589,8 @@ function buildGameGrid() {
 }
 
 // ── PICK GAME ───────────────────────────────────
-function pickGame(key) {
+async function pickGame(key) {
+  await loadPrices();
   S.game=key; S.setsData=[{mainSel:[],bonusSel:[]}]; S.powerPlay=false; S.sets=1;
   var g=GAMES[key];
   document.querySelectorAll('.game-card').forEach(function(c,i){
@@ -610,7 +611,7 @@ function pickGame(key) {
   if (g.hasPP) {
     document.getElementById('secPP').style.display='block';
     var p=PRICES[key]||{};
-    document.getElementById('ppLabel').textContent='+บาท '+(p.pp_sell||0)+'/ชุด';
+    document.getElementById('ppLabel').textContent='+บาท '+(p.pp_sell||0)+'/แถว';
   }
 }
 
@@ -709,7 +710,7 @@ function renderAllSets() {
     html += '<div class="sbox" style="margin-bottom:10px">';
 
     html += '<div style="display:flex;align-items:center;margin-bottom:10px">';
-    html += '<div class="stitle" style="margin-bottom:0">🎫 ชุดที่ ' + (i + 1) + '</div>';
+    html += '<div class="stitle" style="margin-bottom:0">🎫 แถวที่ ' + (i + 1) + '</div>';
     if (i > 0) {
       html += '<button onclick="removeSet(' + i + ')" style="margin-left:auto;background:#ffe4e6;border:1px solid #ffb3c6;border-radius:50px;color:#be123c;font-family:Mitr,sans-serif;font-size:11px;padding:4px 12px;cursor:pointer">✕ ลบ</button>';
     }
@@ -806,7 +807,7 @@ function togN(si,n,isBonus) {
 
 function addSet() {
   if (!S.game) return;
-  if (S.sets >= 5) { toast('สูงสุด 5 ชุด', 'info'); return; }
+  if (S.sets >= 5) { toast('สูงสุด 5 แถว', 'info'); return; }
   S.sets++;
   S.setsData.push({ mainSel: [], bonusSel: [], mode: 'random' });
   updateSets();
@@ -821,7 +822,8 @@ function rnd(max,n){
 }
 
 // ── SUBMIT ──────────────────────────────────────
-function doSubmit() {
+async function doSubmit() {
+  await loadPrices();
   if (!S.game){toast('เลือกเกมก่อน','err');return;}
   if (!S.drawDate){toast('เลือกงวดก่อน','err');return;}
   var g=GAMES[S.game];
@@ -829,8 +831,8 @@ function doSubmit() {
     var sd=S.setsData[i];
     var isRand=sd.mode==='random'||(!sd.mode&&S.method==='random');
     if(!isRand){
-      if (sd.mainSel.length!==g.mainCount){toast('ชุด'+(i+1)+': เลือกเลขให้ครบ '+g.mainCount,'err');return;}
-      if (g.bonusCount>0&&sd.bonusSel.length!==g.bonusCount){toast('ชุด'+(i+1)+': เลือก '+g.bonusLabel,'err');return;}
+      if (sd.mainSel.length!==g.mainCount){toast('แถว'+(i+1)+': เลือกเลขให้ครบ '+g.mainCount,'err');return;}
+      if (g.bonusCount>0&&sd.bonusSel.length!==g.bonusCount){toast('แถว'+(i+1)+': เลือก '+g.bonusLabel,'err');return;}
     } else {
       if(!sd.mainSel.length){sd.mainSel=rnd(g.mainMax,g.mainCount);sd.bonusSel=g.bonusCount>0?rnd(g.bonusMax,g.bonusCount):[];}
     }
@@ -866,7 +868,7 @@ function showConfirm(bookingData) {
 
   bookingData.setsData.forEach(function(sd, i) {
     html += '<div style="margin-bottom:8px;padding:8px;background:var(--white);border-radius:10px;border:1px solid var(--pink3)">';
-    html += '<div style="font-size:11px;color:var(--text2);margin-bottom:5px">ชุดที่ ' + (i+1) + '</div>';
+    html += '<div style="font-size:11px;color:var(--text2);margin-bottom:5px">แถวที่ ' + (i+1) + '</div>';
     html += '<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">';
     sd.mainSel.slice().sort(function(a,b){return a-b;}).forEach(function(n){
       html += '<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--pink),var(--lav));color:#fff;display:flex;align-items:center;justify-content:center;font-family:Itim,cursive;font-size:12px;font-weight:700">' + (n<10?'0':'') + n + '</div>';
@@ -882,7 +884,7 @@ function showConfirm(bookingData) {
   });
 
   html += '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-top:6px">';
-  html += '<span>' + bookingData.sets + ' ชุด × บาท' + unitSell + '</span>';
+  html += '<span>' + bookingData.sets + ' แถว × บาท' + unitSell + '</span>';
   if (bookingData.powerPlay) html += '<span style="color:var(--lav)">⚡ Power Play</span>';
   html += '</div>';
 
@@ -902,6 +904,7 @@ function closeConfirm() {
 async function doPayment() {
   var bookingData = S.pendingBooking;
   if (!bookingData) return;
+  await loadPrices();
 
   var g = GAMES[bookingData.gameKey];
   var p = PRICES[bookingData.gameKey] || {};
@@ -1056,7 +1059,7 @@ function renderList(list){
       var profit=(b.total_sell||0)-(b.total_cost||0);
       html+='<div class="bk-top"><div><div class="bk-id">'+b.id+'</div><div class="bk-game">'+b.game_name+'</div></div><span class="status-tag '+sc+'">'+stTh+'</span></div>';
       html+='<div class="bk-balls">'+balls+'</div>';
-      html+='<div class="bk-meta"><span>👤 '+(b.customer_name||'-')+'</span><span>📅 '+(b.draw_date||'-')+'</span><span>'+(b.sets_count||1)+' ชุด</span><span style="color:var(--peach)">บาท '+(b.total_sell||0)+'</span><span style="color:#10b981">กำไร บาท '+profit+'</span></div>';
+      html+='<div class="bk-meta"><span>👤 '+(b.customer_name||'-')+'</span><span>📅 '+(b.draw_date||'-')+'</span><span>'+(b.sets_count||1)+' แถว</span><span style="color:var(--peach)">บาท '+(b.total_sell||0)+'</span><span style="color:#10b981">กำไร บาท '+profit+'</span></div>';
       html+='<div class="bk-actions">';
       if(st!=='confirmed') html+='<button class="bk-btn ok" onclick="updStatus(\''+b.id+'\',\'confirmed\')">✅ ยืนยัน</button>';
       if(st!=='cancelled') html+='<button class="bk-btn no" onclick="updStatus(\''+b.id+'\',\'cancelled\')">❌ ยกเลิก</button>';
@@ -1066,7 +1069,7 @@ function renderList(list){
       html+='<div class="bk-top"><div><div class="bk-game">'+b.game_name+'</div></div></div>';
       html+='<div style="font-size:13px;font-weight:600;margin-bottom:5px">'+(b.customer_name||'-')+'</div>';
       html+='<div class="bk-balls">'+balls+'</div>';
-      html+='<div class="bk-meta"><span>📅 '+(b.draw_date||'-')+'</span><span>'+(b.sets_count||1)+' ชุด</span></div>';
+      html+='<div class="bk-meta"><span>📅 '+(b.draw_date||'-')+'</span><span>'+(b.sets_count||1)+' แถว</span></div>';
     }
     html+='</div>';
   });
@@ -1129,7 +1132,7 @@ async function loadPricePanel(){
     Object.values(GAMES).forEach(function(g){
       var p=PRICES[g.key]||{};
       html+='<div class="price-row"><div class="game-lbl">'+g.emoji+' '+g.name+'</div>';
-      html+='<div class="price-inp-label">ราคาขาย/ชุด</div>';
+      html+='<div class="price-inp-label">ราคาขาย/แถว</div>';
       html+='<input class="price-inp" type="number" id="sell_'+g.key+'" value="'+(p.sell_price||0)+'" min="0">';
       if(g.hasPP){
         html+='<div class="price-inp-label">Power Play ขาย</div>';
@@ -1146,7 +1149,7 @@ async function loadPricePanel(){
       var profit=(p.sell_price||0)-(p.cost_price||0);
       html+='<div class="price-row"><div class="game-lbl">'+g.emoji+' '+g.name+'</div>';
       html+='<div class="profit-box"><div><div class="lbl">ต้นทุน</div><div class="val" style="color:var(--peach)">บ.'+(p.cost_price||0)+'</div></div>';
-      html+='<div><div class="lbl">กำไร/ชุด</div><div class="val" style="color:#10b981">บ.'+profit+'</div></div></div></div>';
+      html+='<div><div class="lbl">กำไร/แถว</div><div class="val" style="color:#10b981">บ.'+profit+'</div></div></div></div>';
     });
     html+='</div>';
   } else {
@@ -1183,7 +1186,7 @@ async function loadPricePanel(){
     Object.values(GAMES).forEach(function(g){
       var p=PRICES[g.key]||{};
       html+='<div class="price-row"><div class="game-lbl">'+g.emoji+' '+g.name+'</div>';
-      html+='<div class="price-inp-label">ต้นทุน/ชุด</div>';
+      html+='<div class="price-inp-label">ต้นทุน/แถว</div>';
       html+='<input class="price-inp" type="number" id="cost_'+g.key+'" value="'+(p.cost_price||0)+'" min="0">';
       if(g.hasPP){
         html+='<div class="price-inp-label">Power Play ทุน</div>';
@@ -1366,7 +1369,7 @@ async function loadTicketGallery() {
     html += '<select class="price-inp assign-ticket-sel" data-img-id="' + escAttr(img.id) + '" style="width:100%;font-size:11px;padding:6px 8px;text-align:left" onchange="assignTicket(this.dataset.imgId, this.value)">';
     html += '<option value="">— ยังไม่ผูก —</option>';
     bookings.forEach(function(b) {
-      var label = b.id + ' · ' + (b.customer_name || '-') + ' (' + (b.sets_count || 1) + ' ชุด)';
+      var label = b.id + ' · ' + (b.customer_name || '-') + ' (' + (b.sets_count || 1) + ' แถว)';
       var sel = img.booking_id === b.id ? ' selected' : '';
       html += '<option value="' + escAttr(b.id) + '"' + sel + '>' + escAttr(label) + '</option>';
     });
