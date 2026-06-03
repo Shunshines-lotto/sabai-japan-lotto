@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Sabai Japan Lotto</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600&family=Itim&family=Noto+Sans+Thai:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -131,6 +132,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .bk-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
 .bk-id{font-family:'Itim',cursive;font-size:12px;color:var(--lav);font-weight:700}
 .bk-game{font-size:13px;font-weight:600;margin-bottom:4px}
+.bk-headline{font-size:13px;font-weight:600;line-height:1.45;color:var(--text);flex:1;min-width:0}
+.list-draw-bar{display:none;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;padding:10px 12px;background:var(--white);border:2px solid var(--pink3);border-radius:var(--r)}
+.list-draw-bar.show{display:flex}
+.list-draw-bar .title{font-size:13px;font-weight:600;color:var(--text);flex:1}
 .bk-balls{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
 .bk-ball{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Itim',cursive;font-size:10px;font-weight:700}
 .bk-ball.m{background:linear-gradient(135deg,var(--pink),var(--lav));color:var(--white)}
@@ -342,6 +347,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <input type="date" id="listDrawDate" onchange="onListDateChange()">
   </div>
   <div class="list-filter-hint" id="listFilterHint">เลือกเกมก่อน แล้วเลือกงวดวันที่</div>
+  <div class="list-draw-bar" id="listDrawBar">
+    <div class="title" id="listDrawTitle"></div>
+    <button type="button" class="bk-btn ok" style="white-space:nowrap;background:var(--lav);color:#fff" onclick="downloadAllDrawImages()">⬇ ดาวน์โหลดรูปทั้งหมด</button>
+  </div>
   <div class="draw-tz-note" style="margin-bottom:10px">วันที่งวดในรายการ = ตามเวลาอเมริกา (Central — Texas)</div>
   <div style="display:flex;gap:7px;margin-bottom:8px">
     <input class="search-bar" id="searchIn" placeholder="🔍 ค้นหา..." oninput="filterList()" style="margin-bottom:0">
@@ -1185,6 +1194,8 @@ function adminLogout(){
   document.getElementById('adminWhoLabel').innerHTML='';
   LIST_FILTER = { gameKey: '', drawDate: '' };
   document.getElementById('listDateRow').classList.remove('show');
+  var ldb = document.getElementById('listDrawBar');
+  if (ldb) ldb.classList.remove('show');
   var ld = document.getElementById('listDrawDate');
   if (ld) ld.value = '';
   document.querySelectorAll('.game-filter-pill').forEach(function(el){ el.classList.remove('active'); });
@@ -1235,13 +1246,24 @@ function updateListFilterHint() {
   if (!el) return;
   if (!LIST_FILTER.gameKey) {
     el.textContent = 'เลือกเกมก่อน แล้วเลือกงวดวันที่';
+    var bar0 = document.getElementById('listDrawBar');
+    if (bar0) bar0.classList.remove('show');
     return;
   }
   if (!LIST_FILTER.drawDate) {
     el.textContent = getListGameLabel(LIST_FILTER.gameKey) + ' — เลือกงวดวันที่ด้านบน';
+    document.getElementById('listDrawBar').classList.remove('show');
     return;
   }
   el.textContent = '📋 ' + getListGameLabel(LIST_FILTER.gameKey) + ' · งวด ' + LIST_FILTER.drawDate;
+  var bar = document.getElementById('listDrawBar');
+  var title = document.getElementById('listDrawTitle');
+  if (bar && title && ADMIN.role === 1) {
+    title.textContent = getListGameLabel(LIST_FILTER.gameKey) + ' - ' + LIST_FILTER.drawDate;
+    bar.classList.add('show');
+  } else if (bar) {
+    bar.classList.remove('show');
+  }
 }
 
 function selectListGame(key) {
@@ -1332,9 +1354,10 @@ function renderList(list){
     html+='<div class="bk-card">';
     if(isA1){
       var profit=(b.total_sell||0)-(b.total_cost||0);
-      html+='<div class="bk-top"><div><div class="bk-id">'+b.id+'</div><div class="bk-game">'+b.game_name+'</div></div><span class="status-tag '+sc+'">'+stTh+'</span></div>';
+      var headline=escAttr(b.game_name||'-')+' - '+escAttr(b.customer_name||'-')+' - '+escAttr(b.draw_date||'-')+' - '+(b.sets_count||1)+' แถว';
+      html+='<div class="bk-top"><div style="flex:1;min-width:0"><div class="bk-id">'+b.id+'</div><div class="bk-headline">'+headline+'</div></div><span class="status-tag '+sc+'">'+stTh+'</span></div>';
       html+='<div class="bk-balls">'+balls+'</div>';
-      html+='<div class="bk-meta"><span>👤 '+(b.customer_name||'-')+'</span><span>📅 '+(b.draw_date||'-')+'</span><span>'+(b.sets_count||1)+' แถว</span><span style="color:var(--peach)">บาท '+(b.total_sell||0)+'</span><span style="color:#10b981">กำไร บาท '+profit+'</span></div>';
+      html+='<div class="bk-meta"><span style="color:var(--peach)">บาท '+(b.total_sell||0)+'</span><span style="color:#10b981">กำไร บาท '+profit+'</span></div>';
       html+='<div class="bk-actions">';
       if(st!=='confirmed') html+='<button class="bk-btn ok" onclick="updStatus(\''+b.id+'\',\'confirmed\')">✅ ยืนยัน</button>';
       if(st!=='cancelled') html+='<button class="bk-btn no" onclick="updStatus(\''+b.id+'\',\'cancelled\')">❌ ยกเลิก</button>';
@@ -1472,7 +1495,7 @@ async function loadPricePanel(){
     html+='<button class="btn-save-price" onclick="runAutoMatchAll()" style="margin-top:8px;background:linear-gradient(135deg,var(--lav),var(--sky))">🔗 ผูกอัตโนมัติทั้งหมด (เลือกเลข)</button>';
     html+='<div class="section-hd" style="margin-top:14px">🖼️ รูปที่อัพโหลดแล้ว</div>';
     html+='<div id="assignSummary" style="font-size:11px;color:var(--text2);margin-bottom:8px"></div>';
-    html+='<div id="uploadModeHint" style="font-size:11px;color:var(--text2);margin-bottom:6px">โหมดเลือกเลข: L1=รายการที่1, L2=รายการที่2 หรือชื่อไฟล์มีเลขตรงใบจอง · ใบสุ่มใช้โหมดใบสุ่ม</div>';
+    html+='<div id="uploadModeHint" style="font-size:11px;color:var(--text2);margin-bottom:6px">โหมดเลือกเลข: จับคู่เลขจากชื่อไฟล์ก่อน แล้วตั้งชื่อตามลูกค้า · ใบสุ่ม: ตั้งชื่อตามในรูป (เช่น M1.jpg)</div>';
     html+='<div id="galleryArea"></div>';
     html+='</div>';
 
@@ -1546,8 +1569,8 @@ function setUploadMode(mode) {
   var hint = document.getElementById('uploadModeHint');
   if (hint) {
     hint.textContent = _uploadMode === 'auto'
-      ? 'โหมดเลือกเลข: L1,L2… ตามลำดับรายการ หรือชื่อไฟล์มีเลขตรงใบจอง · ใบสุ่มใช้โหมดใบสุ่ม'
-      : 'โหมดใบสุ่ม: อัพโหลดแล้วเลือกรายการจองใบสุ่มจากรายการด้านล่าง';
+      ? 'โหมดเลือกเลข: อัพด้วยชื่อไฟล์ที่มีเลขตรงใบจอง → ผูกแล้วเปลี่ยนชื่อเป็นชื่อลูกค้า'
+      : 'โหมดใบสุ่ม: ตั้งชื่อไฟล์ตามในรูป (M1, M2…) แล้วเลือกผูกรายการจอง';
   }
   loadTicketGallery();
 }
@@ -1658,7 +1681,89 @@ function allNumberSetsFromFilename(name, gameKey) {
   return sets;
 }
 
-async function autoMatchTicketImages(gameKey, drawDate) {
+function safeTicketBase(name) {
+  var s = String(name || 'guest').trim().replace(/[^\w\u0E00-\u0E7F]+/g, '_').replace(/_+/g, '_');
+  return s || 'guest';
+}
+
+/** ใบสุ่ม: ชื่อจากไฟล์ต้นฉบับ เช่น M1.jpg */
+function poolLabelFromFile(fileName, gameKey) {
+  var base = String(fileName || '').replace(/\.[^.]+$/i, '').trim();
+  var m = base.match(/^([A-Za-z])(\d+)$/i);
+  if (m) return m[1].toUpperCase() + m[2];
+  m = base.match(/^(\d+)$/);
+  if (m) return getTicketPrefix(gameKey) + m[1];
+  return safeTicketBase(base).slice(0, 24);
+}
+
+function bookingFileLabel(booking, setIndex, usedMap) {
+  var base = safeTicketBase(booking.customer_name);
+  if (setIndex != null && (booking.sets_count || 1) > 1) base += '-R' + (setIndex + 1);
+  if (usedMap[base]) {
+    usedMap[base]++;
+    base += '_' + usedMap[base];
+  } else {
+    usedMap[base] = 1;
+  }
+  return base;
+}
+
+async function renameTicketToBookingName(img, booking, setIndex, gameKey, drawDate, usedMap) {
+  if (!img || !booking) return;
+  usedMap = usedMap || {};
+  var label = bookingFileLabel(booking, setIndex, usedMap);
+  var ext = (img.storage_path || '').split('.').pop() || 'jpg';
+  var newPath = drawDate + '/' + gameKey + '/' + label + '.' + ext;
+  var finalPath = newPath;
+
+  if (img.storage_path && img.storage_path !== newPath) {
+    var moved = await sb.storage.from('lottery-tickets').move(img.storage_path, newPath);
+    if (moved.error) {
+      var altPath = drawDate + '/' + gameKey + '/' + label + '_' + Date.now() + '.' + ext;
+      var moved2 = await sb.storage.from('lottery-tickets').move(img.storage_path, altPath);
+      if (!moved2.error) finalPath = altPath;
+      else finalPath = img.storage_path;
+    }
+  }
+
+  var urlData = sb.storage.from('lottery-tickets').getPublicUrl(finalPath);
+  await sb.from('lottery_images').update({
+    file_name: label,
+    storage_path: finalPath,
+    public_url: urlData.publicUrl
+  }).eq('id', img.id);
+}
+
+async function renameAllLinkedForDraw(gameKey, drawDate) {
+  var { data: images } = await sb.from('lottery_images')
+    .select('*')
+    .eq('game_key', gameKey)
+    .eq('draw_date', drawDate)
+    .not('booking_id', 'is', null);
+  if (!images || !images.length) return;
+
+  var bookingMap = {};
+  var ids = [];
+  images.forEach(function(im) {
+    if (im.booking_id && ids.indexOf(im.booking_id) < 0) ids.push(im.booking_id);
+  });
+  for (var i = 0; i < ids.length; i++) {
+    var { data: b } = await sb.from('bookings').select('id,customer_name,sets_count').eq('id', ids[i]).maybeSingle();
+    if (b) bookingMap[b.id] = b;
+  }
+
+  var used = {};
+  var sorted = sortTicketImagesByName(images);
+  for (var j = 0; j < sorted.length; j++) {
+    var im = sorted[j];
+    var bk = bookingMap[im.booking_id];
+    if (!bk) continue;
+    await renameTicketToBookingName(im, bk, im.set_index, gameKey, drawDate, used);
+  }
+}
+
+async function autoMatchTicketImages(gameKey, drawDate, options) {
+  options = options || {};
   var [{ data: images }, { data: bookings }] = await Promise.all([
     sb.from('lottery_images').select('*').eq('game_key', gameKey).eq('draw_date', drawDate).is('booking_id', null),
     sb.from('bookings').select('*').eq('game_key', gameKey).eq('draw_date', drawDate).neq('status', 'cancelled')
@@ -1688,7 +1793,6 @@ async function autoMatchTicketImages(gameKey, drawDate) {
     if (!taken[slotKey(s.bookingId, s.setIndex)]) slotBySig[s.signature] = s;
   });
 
-  var manualBookings = getManualBookingsOrdered(bookings);
   var matched = 0;
 
   async function linkImage(img, bookingId, setIndex, sig) {
@@ -1714,24 +1818,6 @@ async function autoMatchTicketImages(gameKey, drawDate) {
     var slot = slotBySig[sig];
     if (!slot) continue;
     if (await linkImage(img, slot.bookingId, slot.setIndex, sig)) delete slotBySig[sig];
-  }
-
-  // โหลดรูปที่ยังไม่ผูกหลังผ่าน 1
-  var { data: left1 } = await sb.from('lottery_images')
-    .select('*')
-    .eq('game_key', gameKey)
-    .eq('draw_date', drawDate)
-    .is('booking_id', null);
-  left1 = sortTicketImagesByName(left1 || []);
-
-  // ผ่าน 2: L1, L2… = รายการจองลำดับที่ n (ใบเดียวครอบคลุมทุกแถว)
-  for (var j = 0; j < left1.length; j++) {
-    var im = left1[j];
-    var ord = ticketIndexFromName(im.file_name) || ticketIndexFromName(im.source_filename);
-    if (!ord || ord < 1 || ord > manualBookings.length) continue;
-    var bk = manualBookings[ord - 1];
-    if (bookingHasImage[bk.id]) continue;
-    if (await linkImage(im, bk.id, null, 'order:' + ord)) {}
   }
 
   var { data: left2 } = await sb.from('lottery_images')
@@ -1760,6 +1846,8 @@ async function autoMatchTicketImages(gameKey, drawDate) {
     if (linkedOne) continue;
   }
 
+  if (!options.skipRename) await renameAllLinkedForDraw(gameKey, drawDate);
+
   return matched;
 }
 
@@ -1780,7 +1868,7 @@ function handleTicketFiles(files) {
     reader.onload = function(e) {
       var div = document.createElement('div');
       div.style.cssText = 'position:relative;aspect-ratio:3/4;border-radius:10px;overflow:hidden;border:2px solid var(--pink3)';
-      div.innerHTML = '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover"><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(255,139,171,.85);color:#fff;font-size:10px;text-align:center;padding:3px;font-family:Itim,cursive">' + getTicketName(i) + '</div>';
+      div.innerHTML = '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover"><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(255,139,171,.85);color:#fff;font-size:10px;text-align:center;padding:3px;font-family:Itim,cursive">' + escAttr(file.name) + '</div>';
       previewArea.appendChild(div);
     };
     reader.readAsDataURL(file);
@@ -1855,15 +1943,10 @@ async function repairCancelledTicketsForDraw(gameKey, drawDate) {
   }
 }
 
-function getTicketName(index) {
-  var gameKey = document.getElementById('uploadGameKey') ? document.getElementById('uploadGameKey').value : 'powerball';
-  return getTicketPrefix(gameKey) + (index + 1);
-}
-
 async function uploadTickets() {
   var drawDate = document.getElementById('uploadDrawDate').value;
   var gameKey = document.getElementById('uploadGameKey').value;
-  var prefix = getTicketPrefix(gameKey);
+  var isRandomMode = _uploadMode === 'random';
 
   if (!drawDate) { toast('เลือกงวดก่อน', 'err'); return; }
   if (!_ticketFiles.length) { toast('เลือกรูปก่อน', 'err'); return; }
@@ -1872,39 +1955,41 @@ async function uploadTickets() {
   progress.textContent = 'กำลังอัพโหลด 0/' + _ticketFiles.length + '...';
   progress.style.color = 'var(--text2)';
 
-  var {data: existing} = await sb.from('lottery_images')
-    .select('id')
-    .eq('game_key', gameKey)
-    .eq('draw_date', drawDate);
-  var startIdx = existing ? existing.length : 0;
-
   var uploaded = 0;
   for (var i = 0; i < _ticketFiles.length; i++) {
     var file = _ticketFiles[i];
-    var ticketName = prefix + (startIdx + i + 1);
     var ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-    var storagePath = drawDate + '/' + gameKey + '/' + ticketName + '.' + ext;
+    var fileLabel = isRandomMode
+      ? poolLabelFromFile(file.name, gameKey)
+      : ('tmp-' + Date.now() + '-' + i);
+    var storagePath = drawDate + '/' + gameKey + '/' + fileLabel + '.' + ext;
+    var rowId = fileLabel + '-' + drawDate + '-' + Date.now() + '-' + i;
 
     var {error: storageError} = await sb.storage
       .from('lottery-tickets')
       .upload(storagePath, file, { upsert: true });
 
     if (storageError) {
-      toast('อัพโหลด ' + ticketName + ' ไม่สำเร็จ: ' + storageError.message, 'err');
-      continue;
+      storagePath = drawDate + '/' + gameKey + '/' + fileLabel + '_' + i + '.' + ext;
+      rowId = fileLabel + '-' + i + '-' + Date.now();
+      var retryUp = await sb.storage.from('lottery-tickets').upload(storagePath, file, { upsert: true });
+      if (retryUp.error) {
+        toast('อัพโหลด ' + file.name + ' ไม่สำเร็จ: ' + retryUp.error.message, 'err');
+        continue;
+      }
     }
 
     var {data: urlData} = sb.storage.from('lottery-tickets').getPublicUrl(storagePath);
     var publicUrl = urlData.publicUrl;
 
-    var parsed = _uploadMode === 'auto' ? numbersFromFilename(file.name, gameKey) : null;
+    var parsed = !isRandomMode ? numbersFromFilename(file.name, gameKey) : null;
     var sig = parsed ? setSignature(gameKey, parsed.main, parsed.bonus) : null;
 
     await sb.from('lottery_images').insert({
-      id: ticketName + '-' + drawDate + '-' + Date.now() + '-' + i,
+      id: rowId,
       game_key: gameKey,
       draw_date: drawDate,
-      file_name: ticketName,
+      file_name: fileLabel,
       storage_path: storagePath,
       public_url: publicUrl,
       booking_id: null,
@@ -1918,9 +2003,9 @@ async function uploadTickets() {
   }
 
   var autoN = 0;
-  if (_uploadMode === 'auto') autoN = await autoMatchTicketImages(gameKey, drawDate);
+  if (!isRandomMode) autoN = await autoMatchTicketImages(gameKey, drawDate);
 
-  progress.textContent = '✅ อัพโหลดสำเร็จ ' + uploaded + ' รูป!' + (autoN ? ' · ผูกอัตโนมัติ ' + autoN + ' รูป' : '');
+  progress.textContent = '✅ อัพโหลดสำเร็จ ' + uploaded + ' รูป!' + (autoN ? ' · ผูก ' + autoN + ' รูป · ตั้งชื่อตามลูกค้า' : '');
   progress.style.color = 'var(--mint)';
   _ticketFiles = [];
   document.getElementById('uploadPreviewArea').innerHTML = '';
@@ -2064,6 +2149,11 @@ async function assignTicket(imageId, value) {
     loadTicketGallery();
     return;
   }
+  if (bookingId && _uploadMode !== 'random') {
+    var { data: bk } = await sb.from('bookings').select('id,customer_name,sets_count,game_key,draw_date').eq('id', bookingId).maybeSingle();
+    var { data: im } = await sb.from('lottery_images').select('*').eq('id', imageId).maybeSingle();
+    if (bk && im) await renameTicketToBookingName(im, bk, setIndex, bk.game_key, bk.draw_date, {});
+  }
   toast(bookingId ? 'ผูกรูปแล้ว 🌸' : 'ยกเลิกการผูกแล้ว', 'ok');
   loadTicketGallery();
   refreshAllBookingImages();
@@ -2097,6 +2187,65 @@ function downloadImageUrl(url, filename) {
   document.body.appendChild(a);
   a.click();
   a.remove();
+}
+
+async function downloadAllDrawImages() {
+  if (!LIST_FILTER.gameKey || !LIST_FILTER.drawDate) {
+    toast('เลือกเกมและงวดก่อน', 'err');
+    return;
+  }
+  if (ADMIN.role !== 1) return;
+
+  var { data, error } = await sb.from('lottery_images')
+    .select('*')
+    .eq('game_key', LIST_FILTER.gameKey)
+    .eq('draw_date', LIST_FILTER.drawDate);
+
+  if (error) {
+    toast('โหลดรูปไม่สำเร็จ', 'err');
+    return;
+  }
+
+  var imgs = sortTicketImagesByName(data || []);
+  if (!imgs.length) {
+    toast('ไม่มีรูปในงวดนี้', 'err');
+    return;
+  }
+
+  toast('กำลังดาวน์โหลด ' + imgs.length + ' รูป...', 'ok');
+
+  if (typeof JSZip !== 'undefined') {
+    try {
+      var zip = new JSZip();
+      var folder = zip.folder(LIST_FILTER.gameKey + '_' + LIST_FILTER.drawDate);
+      for (var i = 0; i < imgs.length; i++) {
+        var img = imgs[i];
+        var ext = (img.storage_path || '').split('.').pop() || 'jpg';
+        var res = await fetch(img.public_url);
+        var blob = await res.blob();
+        folder.file((img.file_name || ('img' + (i + 1))) + '.' + ext, blob);
+      }
+      var content = await zip.generateAsync({ type: 'blob' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(content);
+      a.download = LIST_FILTER.gameKey + '-' + LIST_FILTER.drawDate + '-tickets.zip';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      toast('ดาวน์โหลด ZIP ' + imgs.length + ' รูปแล้ว', 'ok');
+      return;
+    } catch (e) {
+      console.warn('ZIP failed', e);
+    }
+  }
+
+  for (var j = 0; j < imgs.length; j++) {
+    var im = imgs[j];
+    var ext2 = (im.storage_path || '').split('.').pop() || 'jpg';
+    downloadImageUrl(im.public_url, (im.file_name || 'ticket') + '.' + ext2);
+    await new Promise(function(r) { setTimeout(r, 400); });
+  }
+  toast('ดาวน์โหลด ' + imgs.length + ' รูปแล้ว', 'ok');
 }
 
 async function downloadAllBookingImages(bookingId) {
