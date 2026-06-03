@@ -73,8 +73,8 @@ CREATE POLICY "anon_insert_bookings" ON public.bookings
 CREATE POLICY "anon_update_bookings" ON public.bookings
   FOR UPDATE TO anon USING (true) WITH CHECK (true);
 
--- Realtime: admin list auto-refresh (run once; ignore error if already added)
-ALTER PUBLICATION supabase_realtime ADD TABLE bookings;
+-- Realtime (ปลอดภัยเมื่อรันซ้ำ — ข้ามถ้ามีในตาราง publication แล้ว)
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE bookings; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ── Lottery ticket images ───────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.lottery_images (
@@ -106,7 +106,7 @@ CREATE POLICY "anon_update_lottery_images" ON public.lottery_images
 CREATE POLICY "anon_delete_lottery_images" ON public.lottery_images
   FOR DELETE TO anon USING (true);
 
-ALTER PUBLICATION supabase_realtime ADD TABLE lottery_images;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE lottery_images; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ── Storage bucket: lottery-tickets ─────────────────────────────
 INSERT INTO storage.buckets (id, name, public)
@@ -176,4 +176,4 @@ CREATE POLICY "anon_all_lottery_results" ON public.lottery_results FOR ALL TO an
 CREATE POLICY "anon_all_winners" ON public.winners FOR ALL TO anon USING (true) WITH CHECK (true);
 CREATE POLICY "anon_all_admin2_income" ON public.admin2_income FOR ALL TO anon USING (true) WITH CHECK (true);
 
-ALTER PUBLICATION supabase_realtime ADD TABLE winners;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE winners; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
