@@ -126,3 +126,54 @@ CREATE POLICY "lottery_tickets_public_update" ON storage.objects
   FOR UPDATE TO anon USING (bucket_id = 'lottery-tickets') WITH CHECK (bucket_id = 'lottery-tickets');
 CREATE POLICY "lottery_tickets_public_delete" ON storage.objects
   FOR DELETE TO anon USING (bucket_id = 'lottery-tickets');
+
+-- ── Lottery results, winners, Admin 2 income ────────────────────
+CREATE TABLE IF NOT EXISTS public.lottery_results (
+  id            text PRIMARY KEY,
+  game_key      text NOT NULL,
+  draw_date     text NOT NULL,
+  main_numbers  jsonb NOT NULL DEFAULT '[]'::jsonb,
+  bonus_number  integer NOT NULL DEFAULT 0,
+  jackpot_usd   numeric NOT NULL DEFAULT 0,
+  source        text DEFAULT 'manual',
+  created_at    timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.winners (
+  id               text PRIMARY KEY,
+  booking_id       text NOT NULL,
+  game_key         text NOT NULL,
+  draw_date        text NOT NULL,
+  customer_name    text,
+  matched_numbers  jsonb,
+  prize_usd        numeric NOT NULL DEFAULT 0,
+  prize_thb        numeric NOT NULL DEFAULT 0,
+  prize_level      text,
+  created_at       timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.admin2_income (
+  id         text PRIMARY KEY,
+  draw_date  text NOT NULL,
+  is_paid    boolean NOT NULL DEFAULT false,
+  paid_at    timestamptz,
+  created_at timestamptz DEFAULT now()
+);
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.lottery_results TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.winners TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.admin2_income TO anon, authenticated;
+
+ALTER TABLE public.lottery_results ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.winners ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin2_income ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "anon_all_lottery_results" ON public.lottery_results;
+DROP POLICY IF EXISTS "anon_all_winners" ON public.winners;
+DROP POLICY IF EXISTS "anon_all_admin2_income" ON public.admin2_income;
+
+CREATE POLICY "anon_all_lottery_results" ON public.lottery_results FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "anon_all_winners" ON public.winners FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "anon_all_admin2_income" ON public.admin2_income FOR ALL TO anon USING (true) WITH CHECK (true);
+
+ALTER PUBLICATION supabase_realtime ADD TABLE winners;

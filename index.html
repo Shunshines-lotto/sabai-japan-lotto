@@ -231,6 +231,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <div class="admin-nav" id="adminNav">
   <button class="nav-btn" id="navList" onclick="switchTab('list')">📋 รายการ</button>
   <button class="nav-btn" id="navPrice" onclick="switchTab('price')">💰 ราคา</button>
+  <button class="nav-btn" id="navResult" onclick="switchTab('result')">🏆 ผลรางวัล</button>
   <button class="nav-btn logout" onclick="adminLogout()">🚪 Log out</button>
 </div>
 
@@ -320,6 +321,13 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 </div>
 </div>
 
+<!-- RESULT PANEL -->
+<div class="panel" id="panel-result">
+<div class="wrap" style="padding-top:12px">
+  <div id="resultContent"></div>
+</div>
+</div>
+
 <!-- CONFIRM MODAL -->
 <div class="modal-bg" id="confirmBg">
   <div class="modal" style="max-width:400px">
@@ -384,6 +392,72 @@ const SUPA_URL = 'https://jbxvloruouddlkovdoot.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpieHZsb3J1b3VkZGxrb3Zkb290Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0ODk2NzUsImV4cCI6MjA5NjA2NTY3NX0.Upe10fvcSE39KrGZO3C6i9TiuJV_ajFswm6lABJ2w9w';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
+const USD_TO_THB = 32;
+
+const PRIZE_LEVELS = {
+  powerball: [
+    { match: 5, bonus: true,  label: 'Jackpot',   usd: 0 },
+    { match: 5, bonus: false, label: 'Match 5',   usd: 1000000 },
+    { match: 4, bonus: true,  label: 'Match 4+PB',usd: 50000 },
+    { match: 4, bonus: false, label: 'Match 4',   usd: 100 },
+    { match: 3, bonus: true,  label: 'Match 3+PB',usd: 100 },
+    { match: 3, bonus: false, label: 'Match 3',   usd: 7 },
+    { match: 2, bonus: true,  label: 'Match 2+PB',usd: 7 },
+    { match: 1, bonus: true,  label: 'Match 1+PB',usd: 4 },
+    { match: 0, bonus: true,  label: 'Match PB',  usd: 4 },
+  ],
+  mega: [
+    { match: 5, bonus: true,  label: 'Jackpot',   usd: 0 },
+    { match: 5, bonus: false, label: 'Match 5',   usd: 1000000 },
+    { match: 4, bonus: true,  label: 'Match 4+MB',usd: 10000 },
+    { match: 4, bonus: false, label: 'Match 4',   usd: 500 },
+    { match: 3, bonus: true,  label: 'Match 3+MB',usd: 200 },
+    { match: 3, bonus: false, label: 'Match 3',   usd: 10 },
+    { match: 2, bonus: true,  label: 'Match 2+MB',usd: 10 },
+    { match: 1, bonus: true,  label: 'Match 1+MB',usd: 4 },
+    { match: 0, bonus: true,  label: 'Match MB',  usd: 2 },
+  ],
+  txtwostep: [
+    { match: 4, bonus: true,  label: 'Jackpot',   usd: 0 },
+    { match: 4, bonus: false, label: 'Match 4',   usd: 1750 },
+    { match: 3, bonus: true,  label: 'Match 3+BB',usd: 50 },
+    { match: 3, bonus: false, label: 'Match 3',   usd: 18 },
+    { match: 2, bonus: true,  label: 'Match 2+BB',usd: 18 },
+    { match: 2, bonus: false, label: 'Match 2',   usd: 2 },
+    { match: 0, bonus: true,  label: 'Match BB',  usd: 2 },
+  ],
+  txlotto: [
+    { match: 6, bonus: false, label: 'Jackpot',   usd: 0 },
+    { match: 5, bonus: false, label: 'Match 5',   usd: 2000 },
+    { match: 4, bonus: false, label: 'Match 4',   usd: 50 },
+    { match: 3, bonus: false, label: 'Match 3',   usd: 3 },
+  ],
+  allornothing: [
+    { match: 12, bonus: false, label: 'All 12',   usd: 250000 },
+    { match: 11, bonus: false, label: 'Match 11',  usd: 500 },
+    { match: 10, bonus: false, label: 'Match 10',  usd: 50 },
+    { match: 0,  bonus: false, label: 'None',      usd: 5 },
+  ],
+};
+
+function checkPrize(gameKey, playerMain, playerBonus, resultMain, resultBonus, jackpotUsd) {
+  var matchMain = playerMain.filter(function(n) { return resultMain.indexOf(n) > -1; }).length;
+  var matchBonus = playerBonus.length > 0 && resultBonus && playerBonus[0] === resultBonus;
+  var levels = PRIZE_LEVELS[gameKey] || [];
+  for (var i = 0; i < levels.length; i++) {
+    var lv = levels[i];
+    var bonusOk = lv.bonus ? matchBonus : true;
+    if (gameKey === 'allornothing') {
+      if (matchMain === lv.match) return { label: lv.label, usd: lv.usd || jackpotUsd };
+    } else {
+      if (matchMain === lv.match && bonusOk) {
+        return { label: lv.label, usd: lv.usd || jackpotUsd };
+      }
+    }
+  }
+  return null;
+}
+
 // ── GAME RULES ──────────────────────────────────
 const GAMES = {
   powerball:    {key:'powerball',    name:'Power Ball',     emoji:'🔴', color:'#ff6b8a', mainCount:5,  mainMax:69, bonusCount:1, bonusMax:26, bonusLabel:'Power Ball', hasPP:true,  drawDays:['MO','WE','SA']},
@@ -435,6 +509,18 @@ async function init() {
     .subscribe(function(status) {
       console.log('Realtime status:', status);
     });
+
+  sb.channel('winners-changes')
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'winners' },
+      function() {
+        if (ADMIN.role > 0) {
+          var date = document.getElementById('resultDate') ? document.getElementById('resultDate').value : '';
+          if (date) { loadWinnerList(date); loadIncomeArea(date); }
+        }
+      }
+    )
+    .subscribe();
 }
 init();
 
@@ -867,12 +953,13 @@ function adminLogout(){
   document.getElementById('panel-book').classList.add('active');
   document.getElementById('panel-list').classList.remove('active');
   document.getElementById('panel-price').classList.remove('active');
+  document.getElementById('panel-result').classList.remove('active');
   toast('ออกจาก Admin แล้ว','ok');
 }
 
 // ── TABS ────────────────────────────────────────
 function switchTab(t){
-  ['book','list','price'].forEach(function(p){
+  ['book','list','price','result'].forEach(function(p){
     document.getElementById('panel-'+p).classList.toggle('active',p===t);
   });
   document.querySelectorAll('.nav-btn:not(.logout)').forEach(function(b){b.classList.remove('active');});
@@ -880,6 +967,7 @@ function switchTab(t){
   if(nb) nb.classList.add('active');
   if(t==='list') loadList();
   if(t==='price') loadPricePanel();
+  if(t==='result') loadResultPanel();
 }
 
 // ── LIST ────────────────────────────────────────
@@ -1317,6 +1405,319 @@ async function loadBookingImages(bookingId, gameKey, drawDate, containerId) {
     el.innerHTML = html;
   } else {
     el.innerHTML = '<div style="font-size:11px;color:var(--text3);margin-top:4px">⏳ รอ Admin 2 ผูกรูปกับรายการนี้</div>';
+  }
+}
+
+// ── RESULTS & INCOME ────────────────────────────
+async function loadResultPanel() {
+  var el = document.getElementById('resultContent');
+  var isA1 = ADMIN.role === 1;
+  var html = '';
+
+  html += '<div class="sbox">';
+  html += '<div class="stitle">🏆 บันทึกผลรางวัล</div>';
+  html += '<div class="form-row">';
+  html += '<div class="fg"><label>งวดวันที่</label><input type="date" id="resultDate" class="price-inp" style="text-align:left;font-size:13px" onchange="loadExistingResults();onResultGameChange()"></div>';
+  html += '<div class="fg"><label>เกม</label><select id="resultGame" class="price-inp" style="text-align:left;font-size:13px" onchange="onResultGameChange()">';
+  html += '<option value="powerball">🔴 Power Ball (API)</option>';
+  html += '<option value="mega">🟡 Mega Millions (API)</option>';
+  html += '<option value="txtwostep">🔵 TX Two Step</option>';
+  html += '<option value="txlotto">🟢 TX Lotto</option>';
+  html += '<option value="allornothing">⚫ All or Nothing</option>';
+  html += '</select></div>';
+  html += '</div>';
+  html += '<div id="resultInputArea"><div style="font-size:12px;color:var(--text2);padding:10px;text-align:center">เลือกงวดและเกมก่อนครับ</div></div>';
+  html += '</div>';
+
+  html += '<div class="sbox">';
+  html += '<div class="stitle">🎉 ผู้ถูกรางวัล <span class="badge" id="winnerCount">0 คน</span></div>';
+  html += '<div id="winnerList"><div class="empty">เลือกงวดเพื่อดูผู้ถูกรางวัล</div></div>';
+  html += '</div>';
+
+  html += '<div class="sbox">';
+  html += '<div class="stitle">💰 สรุปรายได้ Admin 2</div>';
+  html += '<div id="incomeArea"><div class="empty">เลือกงวดก่อนครับ</div></div>';
+  html += '</div>';
+
+  if (isA1) {
+    html += '<div class="sbox">';
+    html += '<div class="stitle">💸 ยอดโอนทุน Admin 1</div>';
+    html += '<div id="transferArea"><div class="empty">เลือกงวดก่อนครับ</div></div>';
+    html += '</div>';
+  }
+
+  el.innerHTML = html;
+}
+
+async function onResultGameChange() {
+  var game = document.getElementById('resultGame').value;
+  var date = document.getElementById('resultDate').value;
+  var area = document.getElementById('resultInputArea');
+  if (!area) return;
+  if (!date) {
+    area.innerHTML = '<div style="font-size:12px;color:var(--text2);padding:10px;text-align:center">เลือกงวดก่อนครับ</div>';
+    return;
+  }
+
+  if (game === 'powerball' || game === 'mega') {
+    area.innerHTML = '<div style="text-align:center;padding:14px;color:var(--text2);font-size:13px">⏳ กำลังดึงผลจาก API...</div>';
+    try {
+      var apiUrl = game === 'powerball'
+        ? 'https://data.ny.gov/resource/d6yy-54nr.json?$order=draw_date%20DESC&$limit=1'
+        : 'https://data.ny.gov/resource/5xaw-6ayf.json?$order=draw_date%20DESC&$limit=1';
+      var res = await fetch(apiUrl);
+      var rows = await res.json();
+      if (rows && rows.length) {
+        var row = rows[0];
+        var mainStr = row.winning_numbers || row.winning_numbers_combined || '';
+        var main = mainStr.split(/\s+/).map(Number).filter(function(n) { return !isNaN(n); });
+        var bonus = parseInt(row.multiplier || row.mega_ball || row.powerball || row.bonus_ball || 0) || 0;
+        var jackpot = parseFloat(String(row.jackpot || row.estimated_jackpot || 0).replace(/,/g, '')) || 0;
+        if (main.length < 5 && row.winning_numbers) {
+          main = String(row.winning_numbers).split(/[\s,]+/).map(Number).filter(function(n) { return !isNaN(n); });
+        }
+        renderApiResult(game, date, { main: main, bonus: bonus, jackpot: jackpot });
+      } else {
+        area.innerHTML = '<div style="color:var(--peach);font-size:12px;padding:10px">ยังไม่มีผลของงวดนี้ กรุณากรอกเอง</div>' + renderManualInput(game);
+      }
+    } catch (e) {
+      area.innerHTML = '<div style="color:#ef4444;font-size:12px;padding:10px">ดึง API ไม่สำเร็จ กรุณากรอกเอง</div>' + renderManualInput(game);
+    }
+  } else {
+    area.innerHTML = renderManualInput(game);
+    loadExistingResults();
+  }
+}
+
+function renderApiResult(game, date, data) {
+  var area = document.getElementById('resultInputArea');
+  var html = '<div style="background:var(--cream);border-radius:var(--r2);padding:12px;border:2px solid var(--pink3)">';
+  html += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">📡 ผลจาก API</div>';
+  html += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">';
+  data.main.forEach(function(n) { html += '<div class="ball main" style="width:32px;height:32px;font-size:12px">' + (n < 10 ? '0' : '') + n + '</div>'; });
+  if (data.bonus) html += '<div style="color:var(--pink2);font-size:16px;margin:0 3px">+</div><div class="ball bonus" style="width:32px;height:32px;font-size:12px">' + (data.bonus < 10 ? '0' : '') + data.bonus + '</div>';
+  html += '</div>';
+  html += '<div style="font-size:12px;color:var(--text2)">Jackpot: $' + data.jackpot + '</div>';
+  html += '<input type="hidden" id="apiMainNums" value="' + data.main.join(',') + '">';
+  html += '<input type="hidden" id="apiBonusNum" value="' + (data.bonus || 0) + '">';
+  html += '<input type="hidden" id="apiJackpot" value="' + data.jackpot + '">';
+  html += '<button onclick="saveAndCheckResult()" style="width:100%;margin-top:10px;padding:10px;background:linear-gradient(135deg,var(--pink),var(--lav));border:none;border-radius:var(--r3);color:#fff;font-family:Mitr,sans-serif;font-size:13px;font-weight:600;cursor:pointer">✅ บันทึกและตรวจรางวัล</button>';
+  html += '</div>';
+  area.innerHTML = html;
+}
+
+function renderManualInput(game) {
+  var g = GAMES[game];
+  var html = '<div style="background:var(--cream);border-radius:var(--r2);padding:12px;border:2px solid var(--pink3)">';
+  html += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">✏️ กรอกผลรางวัล</div>';
+  html += '<div class="fg" style="margin-bottom:8px"><label>เลขหลัก (' + g.mainCount + ' ตัว) คั่นด้วยเครื่องหมาย ,</label>';
+  html += '<input type="text" id="manualMain" class="price-inp" style="text-align:left;font-size:13px" placeholder="1,2,3,4,5"></div>';
+  if (g.bonusCount > 0) {
+    html += '<div class="fg" style="margin-bottom:8px"><label>' + g.bonusLabel + '</label>';
+    html += '<input type="number" id="manualBonus" class="price-inp" style="font-size:13px" placeholder="1-' + g.bonusMax + '"></div>';
+  }
+  html += '<div class="fg" style="margin-bottom:8px"><label>Jackpot (USD) ถ้ามี</label>';
+  html += '<input type="number" id="manualJackpot" class="price-inp" style="font-size:13px" placeholder="0"></div>';
+  html += '<button onclick="saveManualResult()" style="width:100%;margin-top:8px;padding:10px;background:linear-gradient(135deg,var(--pink),var(--lav));border:none;border-radius:var(--r3);color:#fff;font-family:Mitr,sans-serif;font-size:13px;font-weight:600;cursor:pointer">✅ บันทึกและตรวจรางวัล</button>';
+  html += '</div>';
+  return html;
+}
+
+async function saveManualResult() {
+  var game = document.getElementById('resultGame').value;
+  var date = document.getElementById('resultDate').value;
+  var mainInput = document.getElementById('manualMain');
+  var bonusInput = document.getElementById('manualBonus');
+  var jackpotInput = document.getElementById('manualJackpot');
+  if (!date || !mainInput) return;
+  var main = mainInput.value.split(',').map(function(n) { return parseInt(n.trim(), 10); }).filter(function(n) { return !isNaN(n); });
+  var bonus = bonusInput ? parseInt(bonusInput.value, 10) || 0 : 0;
+  var jackpot = jackpotInput ? parseFloat(jackpotInput.value) || 0 : 0;
+  await saveResult(game, date, main, bonus, jackpot, 'manual');
+}
+
+async function saveAndCheckResult() {
+  var game = document.getElementById('resultGame').value;
+  var date = document.getElementById('resultDate').value;
+  var main = document.getElementById('apiMainNums').value.split(',').map(Number);
+  var bonus = parseInt(document.getElementById('apiBonusNum').value, 10) || 0;
+  var jackpot = parseFloat(document.getElementById('apiJackpot').value) || 0;
+  await saveResult(game, date, main, bonus, jackpot, 'api');
+}
+
+async function saveResult(game, date, main, bonus, jackpot, source) {
+  if (!main.length) { toast('กรอกเลขก่อนครับ', 'err'); return; }
+  var id = game + '-' + date;
+  var {error} = await sb.from('lottery_results').upsert({
+    id: id,
+    game_key: game,
+    draw_date: date,
+    main_numbers: main,
+    bonus_number: bonus,
+    jackpot_usd: jackpot,
+    source: source || 'manual'
+  });
+  if (error) { toast('บันทึกผลไม่สำเร็จ: ' + dbErrMsg(error), 'err'); return; }
+  toast('บันทึกผลแล้ว ⏳ กำลังตรวจรางวัล...', 'ok');
+  await checkAllWinners(game, date, main, bonus, jackpot);
+  await loadWinnerList(date);
+  await loadIncomeArea(date);
+}
+
+async function checkAllWinners(gameKey, drawDate, resultMain, resultBonus, jackpotUsd) {
+  var {data: bookings} = await sb.from('bookings')
+    .select('*')
+    .eq('game_key', gameKey)
+    .eq('draw_date', drawDate)
+    .eq('status', 'confirmed');
+
+  if (!bookings || !bookings.length) {
+    toast('ไม่มีรายการยืนยันสำหรับเกม+งวดนี้', 'info');
+    return;
+  }
+
+  await sb.from('winners').delete().eq('game_key', gameKey).eq('draw_date', drawDate);
+
+  var winnerCount = 0;
+  for (var i = 0; i < bookings.length; i++) {
+    var b = bookings[i];
+    var setsData = b.sets_data || [];
+    var bestPrize = null;
+
+    for (var j = 0; j < setsData.length; j++) {
+      var sd = setsData[j];
+      var prize = checkPrize(gameKey, sd.mainSel || [], sd.bonusSel || [], resultMain, resultBonus, jackpotUsd);
+      if (prize && (!bestPrize || prize.usd > bestPrize.usd)) bestPrize = prize;
+    }
+
+    if (bestPrize && bestPrize.usd > 0) {
+      var prizeThb = bestPrize.usd * USD_TO_THB * (b.sets_count || 1);
+      await sb.from('winners').insert({
+        id: b.id + '-' + gameKey + '-' + drawDate,
+        booking_id: b.id,
+        game_key: gameKey,
+        draw_date: drawDate,
+        customer_name: b.customer_name || '-',
+        matched_numbers: resultMain,
+        prize_usd: bestPrize.usd,
+        prize_thb: prizeThb,
+        prize_level: bestPrize.label
+      });
+      winnerCount++;
+    }
+  }
+  toast('ตรวจรางวัลเสร็จแล้ว 🏆 พบผู้ถูก ' + winnerCount + ' คน', 'ok');
+}
+
+async function loadWinnerList(date) {
+  if (!date) return;
+  var {data} = await sb.from('winners').select('*').eq('draw_date', date).order('prize_thb', { ascending: false });
+  var el = document.getElementById('winnerList');
+  var countEl = document.getElementById('winnerCount');
+  if (!data || !data.length) {
+    if (el) el.innerHTML = '<div class="empty">ยังไม่มีผู้ถูกรางวัลในงวดนี้</div>';
+    if (countEl) countEl.textContent = '0 คน';
+    return;
+  }
+  if (countEl) countEl.textContent = data.length + ' คน';
+  var html = '';
+  data.forEach(function(w) {
+    var g = GAMES[w.game_key] || { name: w.game_key, emoji: '' };
+    html += '<div style="background:linear-gradient(135deg,#fff9c4,#fff3e0);border:2px solid var(--peach);border-radius:var(--r);padding:13px;margin-bottom:8px">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">';
+    html += '<div><div style="font-weight:600;font-size:14px">👤 ' + escAttr(w.customer_name || '-') + '</div>';
+    html += '<div style="font-size:11px;color:var(--text2)">' + escAttr(g.name) + ' | ' + escAttr(w.draw_date) + '</div></div>';
+    html += '<div style="text-align:right"><div style="font-family:Itim,cursive;font-size:16px;color:var(--peach)">$' + w.prize_usd + '</div>';
+    html += '<div style="font-family:Itim,cursive;font-size:13px;color:#10b981">฿' + Number(w.prize_thb || 0).toLocaleString() + '</div></div>';
+    html += '</div>';
+    html += '<div style="font-size:11px;background:var(--peach);color:#fff;display:inline-block;padding:2px 10px;border-radius:var(--r3)">' + escAttr(w.prize_level) + '</div>';
+    html += '</div>';
+  });
+  if (el) el.innerHTML = html;
+}
+
+async function loadIncomeArea(date) {
+  if (!date) return;
+  var incEl = document.getElementById('incomeArea');
+  var transEl = document.getElementById('transferArea');
+
+  var {data: bookings} = await sb.from('bookings').select('*').eq('draw_date', date).eq('status', 'confirmed');
+  var {data: winners} = await sb.from('winners').select('*').eq('draw_date', date);
+  var {data: incomeRec} = await sb.from('admin2_income').select('*').eq('draw_date', date);
+
+  var costByGame = {};
+  var totalCost = 0;
+  (bookings || []).forEach(function(b) {
+    if (!costByGame[b.game_key]) costByGame[b.game_key] = 0;
+    var cost = (b.total_cost || (b.cost_price || 0) * (b.sets_count || 1));
+    costByGame[b.game_key] += cost;
+    totalCost += cost;
+  });
+
+  var totalWinnerPayout = 0;
+  (winners || []).forEach(function(w) { totalWinnerPayout += w.prize_thb || 0; });
+
+  var netIncome = totalCost - totalWinnerPayout;
+
+  var html = '';
+  html += '<div style="background:var(--cream);border-radius:var(--r2);padding:12px;border:2px solid var(--pink3);margin-bottom:10px">';
+  html += '<div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">📅 งวด ' + escAttr(date) + '</div>';
+  Object.keys(costByGame).forEach(function(k) {
+    var g = GAMES[k] || { name: k, emoji: '' };
+    html += '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">';
+    html += '<span>' + (g.emoji || '') + ' ' + g.name + '</span><span style="font-family:Itim,cursive;color:var(--peach)">฿' + costByGame[k].toLocaleString() + '</span>';
+    html += '</div>';
+  });
+  html += '<div style="border-top:1px solid var(--pink3);margin:8px 0;padding-top:8px">';
+  html += '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:600">';
+  html += '<span>รวมทุนทั้งหมด</span><span style="font-family:Itim,cursive;color:var(--peach)">฿' + totalCost.toLocaleString() + '</span></div>';
+  html += '<div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">';
+  html += '<span>หักจ่ายรางวัลลูกค้า</span><span style="font-family:Itim,cursive;color:#ef4444">-฿' + totalWinnerPayout.toLocaleString() + '</span></div>';
+  html += '<div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;margin-top:6px">';
+  html += '<span>รายได้ Admin 2</span><span style="font-family:Itim,cursive;color:#10b981">฿' + netIncome.toLocaleString() + '</span></div>';
+  html += '</div>';
+
+  var isPaid = incomeRec && incomeRec.length && incomeRec[0].is_paid;
+  html += '<button onclick="toggleIncomePaid(\'' + escAttr(date) + '\',' + (isPaid ? 'true' : 'false') + ')" style="width:100%;margin-top:10px;padding:10px;background:' + (isPaid ? '#d1fae5' : 'linear-gradient(135deg,var(--pink),var(--lav))') + ';border:none;border-radius:var(--r3);color:' + (isPaid ? '#065f46' : '#fff') + ';font-family:Mitr,sans-serif;font-size:13px;font-weight:600;cursor:pointer">';
+  html += isPaid ? '✅ ได้รับเงินแล้ว' : '💰 กดเมื่อได้รับเงินแล้ว';
+  html += '</button>';
+  html += '</div>';
+
+  if (incEl) incEl.innerHTML = html;
+
+  if (transEl && ADMIN.role === 1) {
+    var totalSell = 0;
+    (bookings || []).forEach(function(b) { totalSell += b.total_sell || 0; });
+    var transferAmt = totalCost - totalWinnerPayout;
+
+    var thtml = '<div style="background:linear-gradient(135deg,#e8f5e9,#f3e5f5);border-radius:var(--r2);padding:14px;border:2px solid var(--lav2)">';
+    thtml += '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span>รวมรายรับ (ขาย)</span><span style="font-family:Itim,cursive;color:var(--lav)">฿' + totalSell.toLocaleString() + '</span></div>';
+    thtml += '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span>รวมทุนที่ยืนยัน</span><span style="font-family:Itim,cursive;color:var(--peach)">฿' + totalCost.toLocaleString() + '</span></div>';
+    thtml += '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span>หักจ่ายรางวัลลูกค้า</span><span style="font-family:Itim,cursive;color:#ef4444">-฿' + totalWinnerPayout.toLocaleString() + '</span></div>';
+    thtml += '<div style="border-top:1px solid var(--lav2);padding-top:8px;margin-top:6px">';
+    thtml += '<div style="display:flex;justify-content:space-between;font-size:16px;font-weight:700"><span>💸 ยอดโอนให้ Admin 2</span><span style="font-family:Itim,cursive;color:var(--lav)">฿' + transferAmt.toLocaleString() + '</span></div>';
+    thtml += '</div></div>';
+    transEl.innerHTML = thtml;
+  }
+}
+
+async function toggleIncomePaid(date, currentPaid) {
+  var newPaid = !(currentPaid === true || currentPaid === 'true');
+  await sb.from('admin2_income').upsert({
+    id: 'income-' + date,
+    draw_date: date,
+    is_paid: newPaid,
+    paid_at: newPaid ? new Date().toISOString() : null
+  });
+  toast(newPaid ? '✅ บันทึกว่าได้รับเงินแล้ว' : 'ยกเลิกการรับเงิน', 'ok');
+  await loadIncomeArea(date);
+}
+
+async function loadExistingResults() {
+  var date = document.getElementById('resultDate') ? document.getElementById('resultDate').value : '';
+  if (date) {
+    await loadWinnerList(date);
+    await loadIncomeArea(date);
   }
 }
 
