@@ -1039,6 +1039,8 @@ async function loadPricePanel(){
     html+='<option value="powerball">Power Ball (P)</option>';
     html+='<option value="mega">Mega Millions (M)</option>';
     html+='<option value="txtwostep">TX Two Step (T)</option>';
+    html+='<option value="txlotto">TX Lotto (L)</option>';
+    html+='<option value="allornothing">All or Nothing (A)</option>';
     html+='</select></div>';
     html+='</div>';
     html+='<div id="uploadDropArea" style="border:2px dashed var(--pink2);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;background:var(--cream);margin-top:10px;transition:all .2s" onclick="document.getElementById(\'ticketFileInput\').click()" ondragover="event.preventDefault();this.style.borderColor=\'var(--pink)\'" ondragleave="this.style.borderColor=\'var(--pink2)\'" ondrop="handleTicketDrop(event)">';
@@ -1127,7 +1129,7 @@ function handleTicketFiles(files) {
 }
 
 function getTicketPrefix(gameKey) {
-  var prefixes = { powerball: 'P', mega: 'M', txtwostep: 'T' };
+  var prefixes = { powerball: 'P', mega: 'M', txtwostep: 'T', txlotto: 'L', allornothing: 'A' };
   return prefixes[gameKey] || 'X';
 }
 
