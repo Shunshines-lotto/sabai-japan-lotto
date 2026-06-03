@@ -22,3 +22,5 @@ If Realtime was set up separately, you can run only:
 ```sql
 ALTER PUBLICATION supabase_realtime ADD TABLE bookings;
 ```
+
+For **lottery ticket image upload** (Admin 2), run the full `supabase-setup.sql` again or the sections for `lottery_images`, `storage.buckets`, and storage policies at the bottom of that file.

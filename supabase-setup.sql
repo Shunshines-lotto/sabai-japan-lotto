@@ -75,3 +75,54 @@ CREATE POLICY "anon_update_bookings" ON public.bookings
 
 -- Realtime: admin list auto-refresh (run once; ignore error if already added)
 ALTER PUBLICATION supabase_realtime ADD TABLE bookings;
+
+-- ── Lottery ticket images ───────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.lottery_images (
+  id           text PRIMARY KEY,
+  game_key     text NOT NULL,
+  draw_date    text NOT NULL,
+  file_name    text NOT NULL,
+  storage_path text NOT NULL,
+  public_url   text NOT NULL,
+  booking_id   text DEFAULT NULL,
+  created_at   timestamptz DEFAULT now()
+);
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.lottery_images TO anon, authenticated;
+
+ALTER TABLE public.lottery_images ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "anon_select_lottery_images" ON public.lottery_images;
+DROP POLICY IF EXISTS "anon_insert_lottery_images" ON public.lottery_images;
+DROP POLICY IF EXISTS "anon_update_lottery_images" ON public.lottery_images;
+DROP POLICY IF EXISTS "anon_delete_lottery_images" ON public.lottery_images;
+
+CREATE POLICY "anon_select_lottery_images" ON public.lottery_images
+  FOR SELECT TO anon USING (true);
+CREATE POLICY "anon_insert_lottery_images" ON public.lottery_images
+  FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "anon_update_lottery_images" ON public.lottery_images
+  FOR UPDATE TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "anon_delete_lottery_images" ON public.lottery_images
+  FOR DELETE TO anon USING (true);
+
+ALTER PUBLICATION supabase_realtime ADD TABLE lottery_images;
+
+-- ── Storage bucket: lottery-tickets ─────────────────────────────
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('lottery-tickets', 'lottery-tickets', true)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "lottery_tickets_public_read" ON storage.objects;
+DROP POLICY IF EXISTS "lottery_tickets_public_upload" ON storage.objects;
+DROP POLICY IF EXISTS "lottery_tickets_public_update" ON storage.objects;
+DROP POLICY IF EXISTS "lottery_tickets_public_delete" ON storage.objects;
+
+CREATE POLICY "lottery_tickets_public_read" ON storage.objects
+  FOR SELECT TO anon USING (bucket_id = 'lottery-tickets');
+CREATE POLICY "lottery_tickets_public_upload" ON storage.objects
+  FOR INSERT TO anon WITH CHECK (bucket_id = 'lottery-tickets');
+CREATE POLICY "lottery_tickets_public_update" ON storage.objects
+  FOR UPDATE TO anon USING (bucket_id = 'lottery-tickets') WITH CHECK (bucket_id = 'lottery-tickets');
+CREATE POLICY "lottery_tickets_public_delete" ON storage.objects
+  FOR DELETE TO anon USING (bucket_id = 'lottery-tickets');

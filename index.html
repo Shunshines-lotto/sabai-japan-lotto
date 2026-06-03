@@ -934,6 +934,7 @@ function renderList(list){
       if(st!=='confirmed') html+='<button class="bk-btn ok" onclick="updStatus(\''+b.id+'\',\'confirmed\')">✅ ยืนยัน</button>';
       if(st!=='cancelled') html+='<button class="bk-btn no" onclick="updStatus(\''+b.id+'\',\'cancelled\')">❌ ยกเลิก</button>';
       html+='</div>';
+      html+='<div id="img-'+b.id+'"></div>';
     } else {
       html+='<div class="bk-top"><div><div class="bk-game">'+b.game_name+'</div></div></div>';
       html+='<div style="font-size:13px;font-weight:600;margin-bottom:5px">'+(b.customer_name||'-')+'</div>';
@@ -943,6 +944,11 @@ function renderList(list){
     html+='</div>';
   });
   el.innerHTML=html;
+  if (isA1) {
+    visible.forEach(function(b) {
+      loadBookingImages(b.id, b.game_key, b.draw_date, 'img-' + b.id);
+    });
+  }
 }
 
 async function updStatus(id, status) {
@@ -1017,6 +1023,30 @@ async function loadPricePanel(){
     });
     html+='</div>';
   } else {
+    html+='<div class="section-hd">📸 อัพโหลดรูปใบลอตเตอรี่</div>';
+    html+='<div class="sbox" style="margin-bottom:12px">';
+    html+='<div class="stitle" style="margin-bottom:10px">📅 เลือกงวดและเกม</div>';
+    html+='<div class="form-row">';
+    html+='<div class="fg"><label>งวดวันที่</label><input type="date" id="uploadDrawDate" class="price-inp" style="text-align:left;font-size:13px" onchange="loadTicketGallery()"></div>';
+    html+='<div class="fg"><label>ประเภทเกม</label><select id="uploadGameKey" class="price-inp" style="text-align:left;font-size:13px" onchange="loadTicketGallery()">';
+    html+='<option value="powerball">Power Ball (P)</option>';
+    html+='<option value="mega">Mega Millions (M)</option>';
+    html+='<option value="txtwostep">TX Two Step (T)</option>';
+    html+='</select></div>';
+    html+='</div>';
+    html+='<div id="uploadDropArea" style="border:2px dashed var(--pink2);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;background:var(--cream);margin-top:10px;transition:all .2s" onclick="document.getElementById(\'ticketFileInput\').click()" ondragover="event.preventDefault();this.style.borderColor=\'var(--pink)\'" ondragleave="this.style.borderColor=\'var(--pink2)\'" ondrop="handleTicketDrop(event)">';
+    html+='<input type="file" id="ticketFileInput" accept="image/*" multiple style="display:none" onchange="handleTicketFiles(this.files)">';
+    html+='<div style="font-size:32px;margin-bottom:6px">🎟️</div>';
+    html+='<div style="font-size:13px;color:var(--text2)"><b style="color:var(--pink)">แตะเพื่อเลือกรูป</b> หรือลากมาวาง</div>';
+    html+='<div style="font-size:11px;color:var(--text3);margin-top:4px">เลือกได้หลายรูปพร้อมกัน</div>';
+    html+='</div>';
+    html+='<div id="uploadPreviewArea" style="margin-top:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>';
+    html+='<div id="uploadProgress" style="margin-top:8px;font-size:12px;color:var(--text2)"></div>';
+    html+='<button class="btn-save-price" onclick="uploadTickets()" style="margin-top:10px">📤 อัพโหลดรูป</button>';
+    html+='<div class="section-hd" style="margin-top:14px">🖼️ รูปที่อัพโหลดแล้ว</div>';
+    html+='<div id="galleryArea"></div>';
+    html+='</div>';
+
     html+='<div class="section-hd">💸 ตั้งราคาทุน (บาท)</div>';
     html+='<div class="price-grid">';
     Object.values(GAMES).forEach(function(g){
@@ -1034,6 +1064,7 @@ async function loadPricePanel(){
     html+='<button class="btn-save-price" onclick="saveCostPrices()">💾 บันทึกราคาทุน</button>';
   }
   el.innerHTML=html;
+  if (!isA1) loadTicketGallery();
 }
 
 async function saveSellPrices(){
@@ -1057,6 +1088,174 @@ async function saveCostPrices(){
   }
   toast('บันทึกแล้ว 🌸','ok');
   loadPricePanel();
+}
+
+// ── TICKET IMAGES (Admin 2 upload / Admin 1 view) ──
+var _ticketFiles = [];
+
+function handleTicketDrop(event) {
+  event.preventDefault();
+  var area = document.getElementById('uploadDropArea');
+  if (area) area.style.borderColor = 'var(--pink2)';
+  handleTicketFiles(event.dataTransfer.files);
+}
+
+function handleTicketFiles(files) {
+  _ticketFiles = Array.from(files);
+  var previewArea = document.getElementById('uploadPreviewArea');
+  if (!previewArea) return;
+  previewArea.innerHTML = '';
+  _ticketFiles.forEach(function(file, i) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var div = document.createElement('div');
+      div.style.cssText = 'position:relative;aspect-ratio:3/4;border-radius:10px;overflow:hidden;border:2px solid var(--pink3)';
+      div.innerHTML = '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover"><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(255,139,171,.85);color:#fff;font-size:10px;text-align:center;padding:3px;font-family:Itim,cursive">' + getTicketName(i) + '</div>';
+      previewArea.appendChild(div);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function getTicketPrefix(gameKey) {
+  var prefixes = { powerball: 'P', mega: 'M', txtwostep: 'T' };
+  return prefixes[gameKey] || 'X';
+}
+
+function getTicketName(index) {
+  var gameKey = document.getElementById('uploadGameKey') ? document.getElementById('uploadGameKey').value : 'powerball';
+  return getTicketPrefix(gameKey) + (index + 1);
+}
+
+async function uploadTickets() {
+  var drawDate = document.getElementById('uploadDrawDate').value;
+  var gameKey = document.getElementById('uploadGameKey').value;
+  var prefix = getTicketPrefix(gameKey);
+
+  if (!drawDate) { toast('เลือกงวดก่อน', 'err'); return; }
+  if (!_ticketFiles.length) { toast('เลือกรูปก่อน', 'err'); return; }
+
+  var progress = document.getElementById('uploadProgress');
+  progress.textContent = 'กำลังอัพโหลด 0/' + _ticketFiles.length + '...';
+  progress.style.color = 'var(--text2)';
+
+  var {data: existing} = await sb.from('lottery_images')
+    .select('id')
+    .eq('game_key', gameKey)
+    .eq('draw_date', drawDate);
+  var startIdx = existing ? existing.length : 0;
+
+  var uploaded = 0;
+  for (var i = 0; i < _ticketFiles.length; i++) {
+    var file = _ticketFiles[i];
+    var ticketName = prefix + (startIdx + i + 1);
+    var ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    var storagePath = drawDate + '/' + gameKey + '/' + ticketName + '.' + ext;
+
+    var {error: storageError} = await sb.storage
+      .from('lottery-tickets')
+      .upload(storagePath, file, { upsert: true });
+
+    if (storageError) {
+      toast('อัพโหลด ' + ticketName + ' ไม่สำเร็จ: ' + storageError.message, 'err');
+      continue;
+    }
+
+    var {data: urlData} = sb.storage.from('lottery-tickets').getPublicUrl(storagePath);
+    var publicUrl = urlData.publicUrl;
+
+    await sb.from('lottery_images').insert({
+      id: ticketName + '-' + drawDate + '-' + Date.now() + '-' + i,
+      game_key: gameKey,
+      draw_date: drawDate,
+      file_name: ticketName,
+      storage_path: storagePath,
+      public_url: publicUrl,
+      booking_id: null
+    });
+
+    uploaded++;
+    progress.textContent = 'กำลังอัพโหลด ' + uploaded + '/' + _ticketFiles.length + '...';
+  }
+
+  progress.textContent = '✅ อัพโหลดสำเร็จ ' + uploaded + ' รูป!';
+  progress.style.color = 'var(--mint)';
+  _ticketFiles = [];
+  document.getElementById('uploadPreviewArea').innerHTML = '';
+  toast('อัพโหลดสำเร็จ ' + uploaded + ' รูป 🌸', 'ok');
+  loadTicketGallery();
+}
+
+async function loadTicketGallery() {
+  var drawDate = document.getElementById('uploadDrawDate') ? document.getElementById('uploadDrawDate').value : '';
+  var gameKey = document.getElementById('uploadGameKey') ? document.getElementById('uploadGameKey').value : '';
+  if (!drawDate || !gameKey) return;
+
+  var {data} = await sb.from('lottery_images')
+    .select('*')
+    .eq('game_key', gameKey)
+    .eq('draw_date', drawDate)
+    .order('file_name', { ascending: true });
+
+  var area = document.getElementById('galleryArea');
+  if (!area) return;
+  if (!data || !data.length) {
+    area.innerHTML = '<div style="font-size:12px;color:var(--text3)">ยังไม่มีรูป</div>';
+    return;
+  }
+
+  var html = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px">';
+  data.forEach(function(img) {
+    html += '<div style="position:relative;aspect-ratio:3/4;border-radius:8px;overflow:hidden;border:1.5px solid var(--pink3)">';
+    html += '<img src="' + img.public_url + '" style="width:100%;height:100%;object-fit:cover">';
+    html += '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(255,139,171,.85);color:#fff;font-size:10px;text-align:center;padding:2px;font-family:Itim,cursive">' + img.file_name + '</div>';
+    html += '<button type="button" data-id="' + img.id + '" onclick="deleteTicket(this.dataset.id)" style="position:absolute;top:3px;right:3px;background:#ef4444;border:none;border-radius:50%;width:18px;height:18px;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>';
+    html += '</div>';
+  });
+  html += '</div>';
+  area.innerHTML = html;
+}
+
+async function deleteTicket(id) {
+  var {data} = await sb.from('lottery_images').select('storage_path').eq('id', id).maybeSingle();
+  if (data && data.storage_path) {
+    await sb.storage.from('lottery-tickets').remove([data.storage_path]);
+  }
+  await sb.from('lottery_images').delete().eq('id', id);
+  toast('ลบรูปแล้ว', 'ok');
+  loadTicketGallery();
+}
+
+async function loadBookingImages(bookingId, gameKey, drawDate, containerId) {
+  var el = document.getElementById(containerId);
+  if (!el) return;
+
+  var {data} = await sb.from('lottery_images')
+    .select('*')
+    .eq('booking_id', bookingId);
+
+  if (!data || !data.length) {
+    var res = await sb.from('lottery_images')
+      .select('*')
+      .eq('game_key', gameKey)
+      .eq('draw_date', String(drawDate))
+      .order('file_name', { ascending: true });
+    data = res.data;
+  }
+
+  if (data && data.length) {
+    var html = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">';
+    data.forEach(function(img) {
+      html += '<div style="position:relative">';
+      html += '<img src="' + img.public_url + '" style="width:60px;height:80px;object-fit:cover;border-radius:6px;border:2px solid var(--pink3)">';
+      html += '<div style="text-align:center;font-size:9px;color:var(--text2)">' + img.file_name + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+    el.innerHTML = html;
+  } else {
+    el.innerHTML = '<div style="font-size:11px;color:var(--text3);margin-top:4px">⏳ รอ Admin 2 อัพโหลดรูป</div>';
+  }
 }
 
 // ── TOAST ───────────────────────────────────────
