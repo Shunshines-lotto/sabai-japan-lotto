@@ -425,6 +425,13 @@ async function init() {
         }
       }
     )
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'lottery_images' },
+      function(payload) {
+        if (ADMIN.role === 1) refreshAllBookingImages();
+        if (ADMIN.role === 2) loadTicketGallery();
+      }
+    )
     .subscribe(function(status) {
       console.log('Realtime status:', status);
     });
@@ -1044,6 +1051,8 @@ async function loadPricePanel(){
     html+='<div id="uploadProgress" style="margin-top:8px;font-size:12px;color:var(--text2)"></div>';
     html+='<button class="btn-save-price" onclick="uploadTickets()" style="margin-top:10px">📤 อัพโหลดรูป</button>';
     html+='<div class="section-hd" style="margin-top:14px">🖼️ รูปที่อัพโหลดแล้ว</div>';
+    html+='<div id="assignSummary" style="font-size:11px;color:var(--text2);margin-bottom:8px"></div>';
+    html+='<div style="font-size:11px;color:var(--text3);margin-bottom:6px">เลือกรายการจองใต้แต่ละรูป (หนึ่งรูปต่อหนึ่ง ID)</div>';
     html+='<div id="galleryArea"></div>';
     html+='</div>';
 
@@ -1186,34 +1195,93 @@ async function uploadTickets() {
   loadTicketGallery();
 }
 
+function escAttr(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
 async function loadTicketGallery() {
   var drawDate = document.getElementById('uploadDrawDate') ? document.getElementById('uploadDrawDate').value : '';
   var gameKey = document.getElementById('uploadGameKey') ? document.getElementById('uploadGameKey').value : '';
-  if (!drawDate || !gameKey) return;
-
-  var {data} = await sb.from('lottery_images')
-    .select('*')
-    .eq('game_key', gameKey)
-    .eq('draw_date', drawDate)
-    .order('file_name', { ascending: true });
-
   var area = document.getElementById('galleryArea');
+  var summary = document.getElementById('assignSummary');
   if (!area) return;
-  if (!data || !data.length) {
+
+  if (!drawDate || !gameKey) {
+    area.innerHTML = '<div style="font-size:12px;color:var(--text3)">เลือกงวดและเกมก่อน</div>';
+    if (summary) summary.textContent = '';
+    return;
+  }
+
+  var [{ data: images }, { data: bookings }] = await Promise.all([
+    sb.from('lottery_images').select('*').eq('game_key', gameKey).eq('draw_date', drawDate).order('file_name', { ascending: true }),
+    sb.from('bookings').select('id,customer_name,sets_count,status').eq('game_key', gameKey).eq('draw_date', drawDate).neq('status', 'cancelled').order('created_at', { ascending: true })
+  ]);
+
+  bookings = bookings || [];
+  images = images || [];
+
+  var assignedCount = images.filter(function(img) { return img.booking_id; }).length;
+  if (summary) {
+    summary.textContent = 'รายการจอง: ' + bookings.length + ' รายการ · รูปผูกแล้ว ' + assignedCount + '/' + images.length;
+  }
+
+  if (!images.length) {
     area.innerHTML = '<div style="font-size:12px;color:var(--text3)">ยังไม่มีรูป</div>';
     return;
   }
 
-  var html = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px">';
-  data.forEach(function(img) {
-    html += '<div style="position:relative;aspect-ratio:3/4;border-radius:8px;overflow:hidden;border:1.5px solid var(--pink3)">';
-    html += '<img src="' + img.public_url + '" style="width:100%;height:100%;object-fit:cover">';
-    html += '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(255,139,171,.85);color:#fff;font-size:10px;text-align:center;padding:2px;font-family:Itim,cursive">' + img.file_name + '</div>';
-    html += '<button type="button" data-id="' + img.id + '" onclick="deleteTicket(this.dataset.id)" style="position:absolute;top:3px;right:3px;background:#ef4444;border:none;border-radius:50%;width:18px;height:18px;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>';
+  var html = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:8px">';
+  images.forEach(function(img) {
+    var linked = !!img.booking_id;
+    var border = linked ? '2px solid var(--mint)' : '1.5px solid var(--pink3)';
+    html += '<div style="border-radius:10px;padding:8px;background:var(--white);border:' + border + '">';
+    html += '<div style="position:relative;aspect-ratio:3/4;border-radius:8px;overflow:hidden;margin-bottom:6px">';
+    html += '<img src="' + escAttr(img.public_url) + '" style="width:100%;height:100%;object-fit:cover">';
+    html += '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(255,139,171,.9);color:#fff;font-size:10px;text-align:center;padding:3px;font-family:Itim,cursive">' + escAttr(img.file_name) + (linked ? ' ✓' : '') + '</div>';
+    html += '<button type="button" data-id="' + escAttr(img.id) + '" onclick="deleteTicket(this.dataset.id)" style="position:absolute;top:4px;right:4px;background:#ef4444;border:none;border-radius:50%;width:20px;height:20px;color:#fff;font-size:11px;cursor:pointer">✕</button>';
+    html += '</div>';
+    html += '<label style="font-size:10px;color:var(--text2);display:block;margin-bottom:3px">ผูกกับรายการจอง</label>';
+    html += '<select class="price-inp assign-ticket-sel" data-img-id="' + escAttr(img.id) + '" style="width:100%;font-size:11px;padding:6px 8px;text-align:left" onchange="assignTicket(this.dataset.imgId, this.value)">';
+    html += '<option value="">— ยังไม่ผูก —</option>';
+    bookings.forEach(function(b) {
+      var label = b.id + ' · ' + (b.customer_name || '-') + ' (' + (b.sets_count || 1) + ' ชุด)';
+      var sel = img.booking_id === b.id ? ' selected' : '';
+      html += '<option value="' + escAttr(b.id) + '"' + sel + '>' + escAttr(label) + '</option>';
+    });
+    if (!bookings.length) {
+      html += '<option value="" disabled>ไม่มีรายการจองงวดนี้</option>';
+    }
+    html += '</select>';
+    if (linked) {
+      var bk = bookings.find(function(b) { return b.id === img.booking_id; });
+      html += '<div style="font-size:10px;color:var(--mint);margin-top:4px">✓ ' + escAttr(bk ? (bk.customer_name || img.booking_id) : img.booking_id) + '</div>';
+    }
     html += '</div>';
   });
   html += '</div>';
   area.innerHTML = html;
+}
+
+async function assignTicket(imageId, bookingId) {
+  var val = bookingId || null;
+  var {error} = await sb.from('lottery_images').update({ booking_id: val }).eq('id', imageId);
+  if (error) {
+    toast('ผูกรูปไม่สำเร็จ: ' + dbErrMsg(error), 'err');
+    loadTicketGallery();
+    return;
+  }
+  toast(val ? 'ผูกรูปกับ ' + val + ' แล้ว 🌸' : 'ยกเลิกการผูกแล้ว', 'ok');
+  loadTicketGallery();
+  refreshAllBookingImages();
+}
+
+function refreshAllBookingImages() {
+  if (ADMIN.role !== 1) return;
+  document.querySelectorAll('[id^="img-"]').forEach(function(el) {
+    var bookingId = el.id.slice(4);
+    var b = _bks.find(function(x) { return x.id === bookingId; });
+    if (b) loadBookingImages(b.id, b.game_key, b.draw_date, el.id);
+  });
 }
 
 async function deleteTicket(id) {
@@ -1232,16 +1300,8 @@ async function loadBookingImages(bookingId, gameKey, drawDate, containerId) {
 
   var {data} = await sb.from('lottery_images')
     .select('*')
-    .eq('booking_id', bookingId);
-
-  if (!data || !data.length) {
-    var res = await sb.from('lottery_images')
-      .select('*')
-      .eq('game_key', gameKey)
-      .eq('draw_date', String(drawDate))
-      .order('file_name', { ascending: true });
-    data = res.data;
-  }
+    .eq('booking_id', bookingId)
+    .order('file_name', { ascending: true });
 
   if (data && data.length) {
     var html = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">';
@@ -1254,7 +1314,7 @@ async function loadBookingImages(bookingId, gameKey, drawDate, containerId) {
     html += '</div>';
     el.innerHTML = html;
   } else {
-    el.innerHTML = '<div style="font-size:11px;color:var(--text3);margin-top:4px">⏳ รอ Admin 2 อัพโหลดรูป</div>';
+    el.innerHTML = '<div style="font-size:11px;color:var(--text3);margin-top:4px">⏳ รอ Admin 2 ผูกรูปกับรายการนี้</div>';
   }
 }
 
