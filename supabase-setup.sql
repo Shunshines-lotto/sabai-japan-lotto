@@ -72,3 +72,6 @@ CREATE POLICY "anon_insert_bookings" ON public.bookings
 
 CREATE POLICY "anon_update_bookings" ON public.bookings
   FOR UPDATE TO anon USING (true) WITH CHECK (true);
+
+-- Realtime: admin list auto-refresh (run once; ignore error if already added)
+ALTER PUBLICATION supabase_realtime ADD TABLE bookings;

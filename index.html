@@ -414,6 +414,18 @@ async function init() {
     console.error('loadPrices failed:', e);
   }
   buildGameGrid();
+
+  sb.channel('bookings-changes')
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'bookings' },
+      function(payload) {
+        if (ADMIN.role > 0) {
+          loadList();
+          loadStats();
+        }
+      }
+    )
+    .subscribe();
 }
 init();
 
@@ -891,9 +903,15 @@ function filterList(){
 
 function renderList(list){
   var el=document.getElementById('listWrap');
-  if(!list.length){el.innerHTML='<div class="empty">🎟 ไม่มีรายการ</div>';return;}
+  var visible = list.filter(function(b) {
+    return b.status !== 'cancelled';
+  });
+  if (!visible.length) {
+    el.innerHTML = '<div class="empty">🎟️ ไม่มีรายการ</div>';
+    return;
+  }
   var isA1=ADMIN.role===1, html='';
-  list.forEach(function(b){
+  visible.forEach(function(b){
     var st=b.status||'pending';
     var sc=st==='confirmed'?'confirmed':st==='cancelled'?'cancelled':'pending';
     var stTh=st==='confirmed'?'ยืนยันแล้ว':st==='cancelled'?'ยกเลิก':'รอยืนยัน';
@@ -925,10 +943,24 @@ function renderList(list){
   el.innerHTML=html;
 }
 
-async function updStatus(id,status){
-  var {error}=await sb.from('bookings').update({status:status,updated_at:new Date().toISOString()}).eq('id',id);
-  if(!error){toast('อัพเดตแล้ว 🌸','ok');loadList();loadStats();}
-  else toast('Error','err');
+async function updStatus(id, status) {
+  var {error} = await sb.from('bookings').update({
+    status: status,
+    updated_at: new Date().toISOString()
+  }).eq('id', id);
+
+  if (!error) {
+    toast(status === 'cancelled' ? '❌ ยกเลิกแล้ว' : '✅ ยืนยันแล้ว 🌸', 'ok');
+    _bks = _bks.filter(function(b) { return b.id !== id || status !== 'cancelled'; });
+    if (status !== 'cancelled') {
+      var found = _bks.find(function(b) { return b.id === id; });
+      if (found) found.status = status;
+    }
+    filterList();
+    loadStats();
+  } else {
+    toast('เกิดข้อผิดพลาด', 'err');
+  }
 }
 
 // ── STATS ───────────────────────────────────────

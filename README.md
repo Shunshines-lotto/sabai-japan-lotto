@@ -15,4 +15,10 @@ If booking fails with **permission denied for table bookings** (or prices show `
 2. Paste and run the entire contents of [`supabase-setup.sql`](./supabase-setup.sql)
 3. Reload the site; set sell/cost prices under **Admin 1 / Admin 2 → ราคา**
 
-This script creates `prices` and `bookings` (if missing), seeds game rows, grants `anon` access, and adds RLS policies for the public booking form.
+This script creates `prices` and `bookings` (if missing), seeds game rows, grants `anon` access, adds RLS policies, and enables Realtime on `bookings`.
+
+If Realtime was set up separately, you can run only:
+
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE bookings;
+```
