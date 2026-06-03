@@ -425,7 +425,9 @@ async function init() {
         }
       }
     )
-    .subscribe();
+    .subscribe(function(status) {
+      console.log('Realtime status:', status);
+    });
 }
 init();
 
@@ -964,16 +966,24 @@ async function updStatus(id, status) {
 }
 
 // ── STATS ───────────────────────────────────────
-async function loadStats(){
-  if(ADMIN.role!==1) return;
-  var {data}=await sb.from('bookings').select('status,total_sell,total_cost');
-  if(!data) return;
-  var total=data.length, pending=0, rev=0, cost=0;
-  data.forEach(function(b){if(b.status==='pending')pending++;rev+=b.total_sell||0;cost+=b.total_cost||0;});
-  document.getElementById('sTotal').textContent=total;
-  document.getElementById('sPend').textContent=pending;
-  document.getElementById('sRev').textContent='บ.'+rev;
-  document.getElementById('sProfit').textContent='บ.'+(rev-cost);
+async function loadStats() {
+  if (ADMIN.role !== 1) return;
+  var {data} = await sb.from('bookings').select('status,total_sell,total_cost');
+  if (!data) return;
+
+  var active = data.filter(function(b) { return b.status !== 'cancelled'; });
+  var total = active.length;
+  var pending = active.filter(function(b) { return b.status === 'pending'; }).length;
+  var rev = 0, cost = 0;
+  active.forEach(function(b) {
+    rev += b.total_sell || 0;
+    cost += b.total_cost || 0;
+  });
+
+  document.getElementById('sTotal').textContent = total;
+  document.getElementById('sPend').textContent = pending;
+  document.getElementById('sRev').textContent = 'บ.' + rev;
+  document.getElementById('sProfit').textContent = 'บ.' + (rev - cost);
 }
 
 // ── PRICE PANEL ─────────────────────────────────
