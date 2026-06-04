@@ -374,6 +374,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   .game-big-card{min-width:150px}
   .jackpot-amount{font-size:15px}
 }
+
+/* ซ่อนหน้าเลือกเกมเมื่อเข้า Admin */
+body.admin-mode #homeGameSection,
+body.admin-mode #panel-book{display:none!important}
 </style>
 </head>
 <body>
@@ -423,7 +427,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   <button class="nav-btn logout" onclick="adminLogout()">🚪 Log out</button>
 </div>
 
+<div id="homeGameSection">
 <div class="game-cards-row" id="gameCardsRow"></div>
+</div>
 
 <!-- BOOK PANEL -->
 <div class="panel active" id="panel-book">
@@ -486,11 +492,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <div class="panel" id="panel-list">
 <div class="wrap" style="padding-top:12px">
   <div id="adminWhoLabel"></div>
-  <div id="listGameSection">
-  <div class="stitle" style="margin-bottom:6px">🎮 เลือกเกม</div>
-  <div class="game-filter-row" id="listGameFilter"></div>
-  </div>
-  <div class="list-date-row" id="listDateRow">
+  <div class="list-date-row show" id="listDateRow">
     <label for="listDrawDate">📅 งวด (US)</label>
     <input type="date" id="listDrawDate" onchange="onListDateChange()">
   </div>
@@ -504,7 +506,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <input class="search-bar" id="searchIn" placeholder="🔍 ค้นหา..." oninput="filterList()" style="margin-bottom:0">
     <button class="bk-btn ok" style="white-space:nowrap;padding:8px 12px;border-radius:var(--r3)" onclick="loadList()" title="โหลดใหม่">🔄</button>
   </div>
-  <div id="listWrap"><div class="empty">เลือกเกมและงวดวันที่</div></div>
+  <div id="listWrap"><div class="empty">เลือกงวดวันที่</div></div>
 </div>
 </div>
 
@@ -1147,6 +1149,7 @@ async function buildGameCards() {
   });
 
   wrap.innerHTML = html;
+  if (ADMIN.role > 0) setAdminUILayout();
 }
 
 // ── PICK GAME ───────────────────────────────────
@@ -1862,19 +1865,16 @@ function pk(n){if(_pVal.length>=4)return;_pVal+=String(n);updDots();if(_pVal.len
 function pDel(){_pVal=_pVal.slice(0,-1);updDots();document.getElementById('pinErr').textContent='';}
 function updDots(){for(var i=0;i<4;i++){var d=document.getElementById('pd'+i);d.classList.toggle('filled',i<_pVal.length);d.classList.remove('err');}}
 function setAdminUILayout() {
-  var cards = document.getElementById('gameCardsRow');
+  document.body.classList.toggle('admin-mode', ADMIN.role > 0);
+  var home = document.getElementById('homeGameSection');
   var book = document.getElementById('panel-book');
-  var listGame = document.getElementById('listGameSection');
   if (ADMIN.role > 0) {
-    if (cards) cards.style.display = 'none';
+    if (home) home.style.display = 'none';
     if (book) book.style.display = 'none';
-    if (listGame) listGame.style.display = 'none';
-    var dateRow = document.getElementById('listDateRow');
-    if (dateRow) dateRow.classList.add('show');
   } else {
-    if (cards) cards.style.display = '';
+    if (home) home.style.display = '';
     if (book) book.style.display = '';
-    if (listGame) listGame.style.display = '';
+    resetForm();
   }
 }
 
@@ -1888,7 +1888,6 @@ function finishAdminLogin(role) {
   setAdminUILayout();
   updateAdminHeader();
   startAdminClock();
-  initListFilterUI();
   switchTab(role === 2 ? 'result' : 'list');
   loadStats();
   toast('เข้าสู่ระบบแล้ว 🌸', 'ok');
@@ -1939,7 +1938,8 @@ function switchTab(t){
   document.querySelectorAll('.nav-btn:not(.logout)').forEach(function(b){b.classList.remove('active');});
   var nb=document.getElementById('nav'+t.charAt(0).toUpperCase()+t.slice(1));
   if(nb) nb.classList.add('active');
-  if(t==='list'){ initListFilterUI(); refreshListView(); }
+  if(t==='list'){ refreshListView(); }
+  if(ADMIN.role>0) setAdminUILayout();
   if(t==='price') loadPricePanel();
   if(t==='result') loadResultPanel();
 }
@@ -2048,7 +2048,6 @@ function refreshListView() {
 }
 
 async function loadList(){
-  initListFilterUI();
   if (ADMIN.role > 0) {
     if (!LIST_FILTER.drawDate) {
       refreshListView();
