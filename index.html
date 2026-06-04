@@ -257,6 +257,103 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .list-filter-hint{font-size:12px;color:var(--text2);margin-bottom:8px;min-height:18px}
 @media(max-width:480px){.form-row{grid-template-columns:1fr}.nb{width:30px;height:30px;font-size:10px}.price-grid{grid-template-columns:1fr}.game-grid{grid-template-columns:repeat(2,1fr);gap:10px}.header-top{max-width:100%;padding-right:72px}}
 @media(max-width:360px){.game-grid{grid-template-columns:1fr}}
+
+/* HOMEPAGE REDESIGN */
+.home-header{
+  position:relative;z-index:1;text-align:center;
+  padding:28px 20px 20px;
+  background:linear-gradient(160deg,#ffcfe0 0%,#f3d9ff 50%,#cbe8ff 100%);
+  border-bottom:3px dashed var(--pink2);
+}
+.header-top-row{
+  display:flex;justify-content:flex-end;padding:0 16px 8px;
+  position:relative;z-index:1;
+}
+.btn-login{
+  display:flex;align-items:center;gap:5px;
+  padding:7px 16px;background:var(--white);
+  border:1.5px solid var(--pink3);border-radius:var(--r3);
+  color:var(--text2);font-family:'Mitr',sans-serif;font-size:12px;
+  font-weight:600;cursor:pointer;transition:all .2s;
+}
+.btn-login:hover{border-color:var(--pink);color:var(--pink)}
+.update-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.7);border-radius:var(--r3);
+  padding:5px 14px;font-size:11px;color:var(--text2);
+  margin-top:8px;backdrop-filter:blur(4px);
+}
+.logo-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.game-cards-row{
+  display:flex;gap:12px;padding:20px 16px;
+  overflow-x:auto;position:relative;z-index:1;
+  scrollbar-width:none;-ms-overflow-style:none;
+}
+.game-cards-row::-webkit-scrollbar{display:none}
+.game-big-card{
+  min-width:180px;flex:1;
+  background:var(--white);border-radius:20px;
+  padding:16px 14px;
+  box-shadow:0 6px 24px rgba(0,0,0,.08);
+  border:2px solid var(--pink3);
+  cursor:pointer;transition:all .2s;
+  display:flex;flex-direction:column;gap:10px;
+}
+.game-big-card:hover{transform:translateY(-3px);box-shadow:0 10px 32px rgba(0,0,0,.12);border-color:var(--gc,var(--pink))}
+.game-big-card.sel{border-color:var(--gc,var(--pink));box-shadow:0 6px 24px rgba(0,0,0,.15)}
+.game-logo-circle{
+  width:60px;height:60px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto;font-size:11px;font-weight:800;
+  font-family:'Mitr',sans-serif;letter-spacing:.5px;
+  color:#fff;text-align:center;line-height:1.2;
+}
+.game-card-section{
+  background:var(--cream);border-radius:10px;padding:8px 10px;
+}
+.game-card-section-label{
+  font-size:9px;color:var(--text3);font-weight:600;
+  letter-spacing:.5px;margin-bottom:4px;
+  display:flex;align-items:center;gap:4px;
+}
+.jackpot-amount{
+  font-family:'Itim',cursive;font-size:18px;
+  font-weight:700;color:var(--gc,var(--pink));
+}
+.result-balls-row{
+  display:flex;flex-wrap:wrap;gap:4px;align-items:center;
+}
+.result-ball{
+  width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Itim',cursive;font-size:11px;font-weight:700;
+  background:var(--gc,var(--pink));color:#fff;
+}
+.result-ball.bonus-ball{
+  background:linear-gradient(135deg,var(--peach),#ff6b47);
+}
+.draw-days-text{
+  font-size:11px;color:var(--text2);font-weight:500;
+}
+.price-tag{
+  font-family:'Itim',cursive;font-size:20px;
+  font-weight:700;color:var(--gc,var(--pink));text-align:center;
+}
+.price-label{font-size:10px;color:var(--text3);text-align:center}
+
+/* LOGIN MODAL */
+.login-modal{
+  background:var(--white);border-radius:22px;padding:28px 24px;
+  max-width:300px;width:90%;text-align:center;
+  box-shadow:0 16px 50px rgba(255,139,171,.3);
+  border:2px solid var(--pink3);
+  animation:pop .35s cubic-bezier(.34,1.56,.64,1);
+}
+
+@media(max-width:600px){
+  .game-big-card{min-width:150px}
+  .jackpot-amount{font-size:15px}
+}
 </style>
 </head>
 <body>
@@ -266,18 +363,30 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <div class="petal" style="left:60%;animation-duration:8s;animation-delay:1s">🌸</div>
 <div class="petal" style="left:85%;animation-duration:10s;animation-delay:3s">✨</div>
 
-<div class="header">
-  <div class="header-top">
-    <div class="logo-wrap">
-      <div class="logo-icon" id="logoIcon">🎰</div>
-      <div class="logo-text">
-        <h1><span>Sabai</span> Japan Lotto</h1>
-      </div>
+<div class="header-top-row">
+  <button type="button" class="btn-login" id="headerLoginBtn" onclick="showLogin()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Log in
+  </button>
+</div>
+
+<div class="home-header">
+  <div class="logo-wrap">
+    <div class="logo-icon" id="logoIcon">🎰</div>
+    <div class="logo-text">
+      <h1><span>Sabai</span> Japan Lotto</h1>
+      <div class="logo-sub">ระบบจัดการข้อมูลรางวัล</div>
     </div>
-    <button type="button" class="header-login" id="headerLoginBtn" onclick="openLogin()">Log in</button>
   </div>
-  <div class="site-updated" id="siteLastUpdated"></div>
-  <div><span class="line-badge">ติดต่อสอบถาม LINE: @sabaijapanlotto</span></div>
+  <div style="margin-top:10px;display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap">
+    <div class="update-badge">
+      🕐 <span id="lastUpdateLabel">กำลังโหลด...</span>
+    </div>
+    <span class="line-badge">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="#00b900"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
+      ติดต่อสอบถาม Line : @sabaijapanlotto
+    </span>
+  </div>
 </div>
 
 <div class="admin-bar" id="adminBar">
@@ -294,13 +403,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   <button class="nav-btn logout" onclick="adminLogout()">🚪 Log out</button>
 </div>
 
+<div class="game-cards-row" id="gameCardsRow"></div>
+
 <!-- BOOK PANEL -->
 <div class="panel active" id="panel-book">
 <div class="wrap" style="padding-top:14px">
-  <div class="sbox">
-    <div class="stitle">🎮 เลือกประเภทหวย</div>
-    <div class="game-grid" id="gameGrid"></div>
-  </div>
   <div class="sbox" id="secDate" style="display:none">
     <div class="stitle">📅 งวด <span class="badge" id="drawHint"></span></div>
     <div class="draw-tz-note">วันที่งวด = <b>เวลา Texas (Central)</b> · ปิดรับจอง <b>06:30 น. (ไทย)</b> = <b>18:30 น. (Texas)</b> ของวันงวด — เลยเวลาแสดงงวดถัดไป</div>
@@ -485,6 +592,20 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
       <button class="btn-line" onclick="shareLine()">LINE แชร์</button>
       <button class="btn-modal" onclick="closeModal()">ตกลง ✨</button>
     </div>
+  </div>
+</div>
+
+<!-- LOGIN CHOOSER -->
+<div id="loginBg" style="display:none;position:fixed;inset:0;background:rgba(92,58,78,.42);backdrop-filter:blur(7px);z-index:2000;align-items:center;justify-content:center">
+  <div class="login-modal">
+    <div style="font-size:36px;margin-bottom:8px">🔐</div>
+    <div style="font-family:Itim,cursive;font-size:20px;color:var(--pink);margin-bottom:6px">Admin Login</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:18px">เลือก Admin ของคุณ</div>
+    <div style="display:flex;gap:10px;margin-bottom:14px">
+      <button type="button" onclick="chooseAdmin(1)" style="flex:1;padding:13px 6px;background:linear-gradient(135deg,var(--pink),var(--lav));border:none;border-radius:var(--r2);color:#fff;font-family:Mitr,sans-serif;font-size:14px;font-weight:600;cursor:pointer">👑 Admin 1</button>
+      <button type="button" onclick="chooseAdmin(2)" style="flex:1;padding:13px 6px;background:linear-gradient(135deg,var(--lav),var(--sky));border:none;border-radius:var(--r2);color:#fff;font-family:Mitr,sans-serif;font-size:14px;font-weight:600;cursor:pointer">👔 Admin 2</button>
+    </div>
+    <button type="button" onclick="closeLogin()" style="background:none;border:none;color:var(--text2);font-size:12px;cursor:pointer;font-family:Mitr,sans-serif">✕ ยกเลิก</button>
   </div>
 </div>
 
@@ -786,8 +907,14 @@ async function init() {
   } catch(e) {
     console.error('loadPrices failed:', e);
   }
-  updateSiteLastUpdated();
-  buildGameGrid();
+  await buildGameCards();
+
+  sb.channel('results-home')
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'lottery_results' },
+      function() { buildGameCards(); }
+    )
+    .subscribe();
 
   sb.channel('bookings-changes')
     .on('postgres_changes',
@@ -852,47 +979,119 @@ async function loadPrices() {
   return true;
 }
 
-function formatSiteLastUpdated() {
-  var s = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Asia/Bangkok',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  }).format(new Date());
-  return 'อัปเดตล่าสุด: ' + s + ' น.';
-}
-
-function updateSiteLastUpdated() {
-  var el = document.getElementById('siteLastUpdated');
-  if (el) el.textContent = formatSiteLastUpdated();
-}
-
 function drawDaysThai(drawDays) {
   return (drawDays || []).map(function(d) { return DAY_MAP_TH[d] || d; }).join(' / ');
 }
 
-function buildGameGrid() {
-  var el = document.getElementById('gameGrid');
-  var html = '';
-  var keys = Object.keys(GAMES);
-  for (var i = 0; i < keys.length; i++) {
-    var g = GAMES[keys[i]];
-    var p = PRICES[g.key];
-    var priceLabel = (p && p.sell_price > 0) ? p.sell_price + ' บาท' : '-';
-    var displayName = GAME_DISPLAY_NAME[g.key] || g.name;
-    var jackpot = GAME_CARD_JACKPOT[g.key] || '—';
-    html += '<div class="game-card" style="--gc:' + g.color + '" onclick="pickGame(\'' + g.key + '\')">';
-    html += '<div class="game-ball-icon" style="background:linear-gradient(145deg,' + g.color + '22,' + g.color + '44)">' + g.emoji + '</div>';
-    html += '<div class="game-card-name">' + escAttr(displayName) + '</div>';
-    html += '<div class="game-card-row game-card-jackpot"><div class="game-card-lbl">แจ็กพอต</div><div class="game-card-val">' + escAttr(jackpot) + '</div></div>';
-    html += '<div class="game-card-row"><div class="game-card-lbl">ออกรางวัล</div><div class="game-card-val">' + escAttr(drawDaysThai(g.drawDays)) + '</div></div>';
-    html += '<div class="game-card-row"><div class="game-card-lbl">ราคา</div><div class="game-card-val">' + escAttr(priceLabel) + '</div></div>';
-    html += '</div>';
+function parseMainNumbers(raw) {
+  var nums = raw || [];
+  if (typeof nums === 'string') {
+    try { nums = JSON.parse(nums); } catch (e) { nums = []; }
   }
-  el.innerHTML = html;
+  return Array.isArray(nums) ? nums : [];
+}
+
+async function buildGameCards() {
+  var wrap = document.getElementById('gameCardsRow');
+  if (!wrap) return;
+
+  var { data: results } = await sb.from('lottery_results')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  var lastResultMap = {};
+  (results || []).forEach(function(r) {
+    if (!lastResultMap[r.game_key]) lastResultMap[r.game_key] = r;
+  });
+
+  var labelEl = document.getElementById('lastUpdateLabel');
+  var allDates = (results || []).map(function(r) { return r.created_at; }).filter(Boolean).sort().reverse();
+  if (labelEl) {
+    if (allDates.length) {
+      var d = new Date(allDates[0]);
+      var thaiDate = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
+      var thaiTime = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+      labelEl.textContent = 'อัพเดตล่าสุด: ' + thaiDate + ' ' + thaiTime + ' น.';
+    } else {
+      labelEl.textContent = 'ยังไม่มีการอัพเดตผล';
+    }
+  }
+
+  var GAME_COLORS = {
+    powerball:    { bg: 'linear-gradient(135deg,#e63946,#c1121f)', label: 'POWER\nBALL' },
+    mega:         { bg: 'linear-gradient(135deg,#f9a825,#e65100)', label: 'MEGA\nMILLIONS' },
+    txtwostep:    { bg: 'linear-gradient(135deg,#0077b6,#023e8a)', label: 'TX\nTWO STEP' },
+    txlotto:      { bg: 'linear-gradient(135deg,#2d6a4f,#1b4332)', label: 'TX\nLOTTO' },
+    allornothing: { bg: 'linear-gradient(135deg,#333,#111)', label: 'ALL\nOR NOTHING' }
+  };
+
+  var DAY_TH = { MO: 'จันทร์', TU: 'อังคาร', WE: 'พุธ', TH: 'พฤหัส', FR: 'ศุกร์', SA: 'เสาร์', SU: 'อาทิตย์' };
+
+  var html = '';
+  Object.keys(GAMES).forEach(function(k) {
+    var g = GAMES[k];
+    var clr = GAME_COLORS[g.key] || { bg: 'linear-gradient(135deg,var(--pink),var(--lav))', label: g.name };
+    var p = PRICES[g.key] || {};
+    var result = lastResultMap[g.key];
+    var drawDaysTh = (g.drawDays || []).map(function(d) { return DAY_TH[d] || d; }).join(' / ');
+    var displayName = GAME_DISPLAY_NAME[g.key] || g.name;
+    var sel = S.game === g.key ? ' sel' : '';
+
+    html += '<div class="game-big-card' + sel + '" data-game-key="' + escAttr(g.key) + '" style="--gc:' + g.color + '" onclick="pickGame(\'' + g.key + '\')">';
+
+    html += '<div class="game-logo-circle" style="background:' + clr.bg + '">';
+    html += '<span style="white-space:pre-line;font-size:10px">' + escAttr(clr.label) + '</span>';
+    html += '</div>';
+    html += '<div class="game-card-name">' + escAttr(displayName) + '</div>';
+
+    html += '<div class="game-card-section">';
+    html += '<div class="game-card-section-label">🏆 แจ็คพอตประมูล</div>';
+    if (result && parseFloat(result.jackpot_usd) > 0) {
+      var jNum = parseFloat(result.jackpot_usd);
+      var jLabel = jNum >= 1000000 ? '$' + (jNum / 1000000).toFixed(0) + ' Million' : '$' + jNum.toLocaleString();
+      html += '<div class="jackpot-amount">' + escAttr(jLabel) + '</div>';
+    } else {
+      html += '<div class="jackpot-amount" style="font-size:14px;color:var(--text3)">-</div>';
+    }
+    html += '</div>';
+
+    html += '<div class="game-card-section">';
+    html += '<div class="game-card-section-label">📅 ผลล่าสุด</div>';
+    if (result) {
+      var nums = parseMainNumbers(result.main_numbers);
+      html += '<div class="result-balls-row">';
+      nums.slice(0, 6).forEach(function(n) {
+        var num = parseInt(n, 10);
+        if (isNaN(num)) return;
+        html += '<div class="result-ball">' + (num < 10 ? '0' : '') + num + '</div>';
+      });
+      if (result.bonus_number) {
+        var bn = parseInt(result.bonus_number, 10);
+        if (!isNaN(bn)) {
+          html += '<div class="result-ball bonus-ball">' + (bn < 10 ? '0' : '') + bn + '</div>';
+        }
+      }
+      html += '</div>';
+      html += '<div style="font-size:9px;color:var(--text3);margin-top:3px">' + escAttr(result.draw_date || '') + '</div>';
+    } else {
+      html += '<div style="font-size:11px;color:var(--text3)">ยังไม่มีผล</div>';
+    }
+    html += '</div>';
+
+    html += '<div class="game-card-section">';
+    html += '<div class="game-card-section-label">📆 ออกรางวัล</div>';
+    html += '<div class="draw-days-text">' + escAttr(drawDaysTh) + '</div>';
+    html += '</div>';
+
+    html += '<div style="background:linear-gradient(135deg,rgba(255,139,171,.1),rgba(199,125,255,.1));border-radius:10px;padding:8px 10px;text-align:center">';
+    html += '<div class="price-label">ราคา</div>';
+    html += '<div class="price-tag">' + (p.sell_price > 0 ? escAttr(String(p.sell_price)) + ' บาท' : '- บาท') + '</div>';
+    html += '</div>';
+
+    html += '</div>';
+  });
+
+  wrap.innerHTML = html;
 }
 
 // ── PICK GAME ───────────────────────────────────
@@ -900,8 +1099,8 @@ async function pickGame(key) {
   await loadPrices();
   S.game=key; S.setsData=[{mainSel:[],bonusSel:[]}]; S.powerPlay=false; S.sets=1;
   var g=GAMES[key];
-  document.querySelectorAll('.game-card').forEach(function(c,i){
-    c.classList.toggle('sel', Object.keys(GAMES)[i]===key);
+  document.querySelectorAll('.game-big-card').forEach(function(c){
+    c.classList.toggle('sel', c.dataset.gameKey === key);
   });
   var hide=['secDate','secOnline','secMethod','secSets','secPP','secAllSets','secImgs','secInfo','secSubmit'];
   hide.forEach(function(id){ document.getElementById(id).style.display='none'; });
@@ -1567,22 +1766,31 @@ function shareLine(){
 function resetForm(){
   stopDrawSalesWatcher();
   S.game=null;S.setsData=[{mainSel:[],bonusSel:[]}];S.powerPlay=false;S.sets=1;S.drawDate='';S.pendingBooking=null;S.selectedTicketId=null;
-  document.querySelectorAll('.game-card').forEach(function(c){c.classList.remove('sel');});
+  document.querySelectorAll('.game-big-card').forEach(function(c){c.classList.remove('sel');});
   ['secDate','secOnline','secMethod','secSets','secPP','secAllSets','secImgs','secInfo','secSubmit'].forEach(function(id){document.getElementById(id).style.display='none';});
   document.getElementById('fName').value='';document.getElementById('fPhone').value='';document.getElementById('fNote').value='';
 }
 
 // ── ADMIN AUTH ──────────────────────────────────
-function openLogin() {
-  _pTarget = 0;
+function showLogin() {
+  var bg = document.getElementById('loginBg');
+  if (bg) bg.style.display = 'flex';
+}
+function closeLogin() {
+  var bg = document.getElementById('loginBg');
+  if (bg) bg.style.display = 'none';
+}
+function chooseAdmin(n) {
+  var loginBg = document.getElementById('loginBg');
+  if (loginBg) loginBg.style.display = 'none';
+  _pTarget = n;
   _pVal = '';
-  document.getElementById('pinTitle').textContent = 'Log in';
-  document.getElementById('pinIcon').innerHTML = '🔐';
+  document.getElementById('pinTitle').textContent = 'Admin ' + n;
+  document.getElementById('pinIcon').innerHTML = n === 1 ? '👑' : '👔';
   document.getElementById('pinErr').textContent = '';
   updDots();
   document.getElementById('pinBg').style.display = 'flex';
 }
-function chooseAdmin(n){_pTarget=n;_pVal='';document.getElementById('pinTitle').textContent='Admin '+n;document.getElementById('pinIcon').innerHTML=n===1?'👑':'👔';document.getElementById('pinErr').textContent='';updDots();document.getElementById('pinBg').style.display='flex';}
 function closePin(){document.getElementById('pinBg').style.display='none';_pVal='';}
 function pk(n){if(_pVal.length>=4)return;_pVal+=String(n);updDots();if(_pVal.length===4)setTimeout(checkPin,160);}
 function pDel(){_pVal=_pVal.slice(0,-1);updDots();document.getElementById('pinErr').textContent='';}
@@ -2054,7 +2262,7 @@ async function saveSellPrices(){
   for(var i=0;i<updates.length;i++){
     await sb.from('prices').update({sell_price:updates[i].sell_price,pp_sell:updates[i].pp_sell,updated_at:new Date().toISOString()}).eq('game_key',updates[i].game_key);
   }
-  await loadPrices(); buildGameGrid();
+  await loadPrices(); buildGameCards();
   toast('บันทึกแล้ว 🌸','ok');
   loadPricePanel();
 }
@@ -3238,6 +3446,7 @@ async function saveResult(game, date, main, bonus, jackpot, source) {
   });
   if (error) { toast('บันทึกผลไม่สำเร็จ: ' + dbErrMsg(error), 'err'); return; }
   toast('บันทึกผลแล้ว ⏳ กำลังตรวจรางวัล...', 'ok');
+  buildGameCards();
   await checkAllWinners(game, date, main, bonus, jackpot);
   await loadWinnerList(date);
   await loadIncomeArea(date);
