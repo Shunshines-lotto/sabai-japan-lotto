@@ -486,13 +486,15 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <div class="panel" id="panel-list">
 <div class="wrap" style="padding-top:12px">
   <div id="adminWhoLabel"></div>
+  <div id="listGameSection">
   <div class="stitle" style="margin-bottom:6px">🎮 เลือกเกม</div>
   <div class="game-filter-row" id="listGameFilter"></div>
+  </div>
   <div class="list-date-row" id="listDateRow">
     <label for="listDrawDate">📅 งวด (US)</label>
     <input type="date" id="listDrawDate" onchange="onListDateChange()">
   </div>
-  <div class="list-filter-hint" id="listFilterHint">เลือกเกมก่อน แล้วเลือกงวดวันที่</div>
+  <div class="list-filter-hint" id="listFilterHint">เลือกงวดวันที่</div>
   <div class="list-draw-bar" id="listDrawBar">
     <span class="title" id="listDrawTitle"></span>
     <button type="button" class="bk-btn ok" style="background:var(--lav);color:#fff;padding:8px 14px" onclick="openDownloadDrawConfirm()">⬇ ดาวน์โหลดรูปทั้งหมด</button>
@@ -925,7 +927,7 @@ async function init() {
       { event: '*', schema: 'public', table: 'bookings' },
       function(payload) {
         if (ADMIN.role > 0) {
-          if (LIST_FILTER.gameKey && LIST_FILTER.drawDate) loadList();
+          if (LIST_FILTER.drawDate) loadList();
           loadStats();
         }
         if (S.method === 'draw' && S.game && S.drawDate) loadRandomTicketPool();
@@ -937,9 +939,9 @@ async function init() {
         if (ADMIN.role === 1) refreshAllBookingImages();
         if (ADMIN.role === 2) {
           loadTicketGallery();
-          if (LIST_FILTER.gameKey && LIST_FILTER.drawDate) {
+          if (LIST_FILTER.drawDate) {
             var vis = (_bks || []).filter(function(b) { return b.status !== 'cancelled'; });
-            if (vis.length) loadListImageStatusesForAdmin2(vis, LIST_FILTER.gameKey, LIST_FILTER.drawDate);
+            if (vis.length) loadListImageStatusesForAdmin2(vis, LIST_FILTER.drawDate);
           }
         }
       }
@@ -1859,6 +1861,23 @@ function closePin(){document.getElementById('pinBg').style.display='none';_pVal=
 function pk(n){if(_pVal.length>=4)return;_pVal+=String(n);updDots();if(_pVal.length===4)setTimeout(checkPin,160);}
 function pDel(){_pVal=_pVal.slice(0,-1);updDots();document.getElementById('pinErr').textContent='';}
 function updDots(){for(var i=0;i<4;i++){var d=document.getElementById('pd'+i);d.classList.toggle('filled',i<_pVal.length);d.classList.remove('err');}}
+function setAdminUILayout() {
+  var cards = document.getElementById('gameCardsRow');
+  var book = document.getElementById('panel-book');
+  var listGame = document.getElementById('listGameSection');
+  if (ADMIN.role > 0) {
+    if (cards) cards.style.display = 'none';
+    if (book) book.style.display = 'none';
+    if (listGame) listGame.style.display = 'none';
+    var dateRow = document.getElementById('listDateRow');
+    if (dateRow) dateRow.classList.add('show');
+  } else {
+    if (cards) cards.style.display = '';
+    if (book) book.style.display = '';
+    if (listGame) listGame.style.display = '';
+  }
+}
+
 function finishAdminLogin(role) {
   document.getElementById('pinBg').style.display = 'none';
   ADMIN.role = role;
@@ -1866,6 +1885,7 @@ function finishAdminLogin(role) {
   if (role === 1) document.getElementById('adminBar').classList.add('show');
   var loginBtn = document.getElementById('headerLoginBtn');
   if (loginBtn) loginBtn.style.display = 'none';
+  setAdminUILayout();
   updateAdminHeader();
   startAdminClock();
   initListFilterUI();
@@ -1894,6 +1914,7 @@ function adminLogout(){
   stopAdminClock();
   var loginBtn = document.getElementById('headerLoginBtn');
   if (loginBtn) loginBtn.style.display = '';
+  setAdminUILayout();
   document.getElementById('adminWhoLabel').innerHTML='';
   LIST_FILTER = { gameKey: '', drawDate: '' };
   document.getElementById('listDateRow').classList.remove('show');
@@ -1947,6 +1968,21 @@ function updateListFilterHint() {
   var bar = document.getElementById('listDrawBar');
   var title = document.getElementById('listDrawTitle');
   if (!el) return;
+  if (ADMIN.role > 0) {
+    if (!LIST_FILTER.drawDate) {
+      el.textContent = 'เลือกงวดวันที่ด้านบน';
+      if (bar) bar.classList.remove('show');
+      return;
+    }
+    el.textContent = '📋 รายการจอง — งวด ' + LIST_FILTER.drawDate;
+    if (bar && title && ADMIN.role === 1) {
+      title.textContent = 'งวด ' + LIST_FILTER.drawDate + ' (ทุกเกม)';
+      bar.classList.add('show');
+    } else if (bar) {
+      bar.classList.remove('show');
+    }
+    return;
+  }
   if (!LIST_FILTER.gameKey) {
     el.textContent = 'เลือกเกมก่อน แล้วเลือกงวดวันที่';
     if (bar) bar.classList.remove('show');
@@ -1983,11 +2019,21 @@ function onListDateChange() {
   var dateInp = document.getElementById('listDrawDate');
   LIST_FILTER.drawDate = dateInp ? dateInp.value : '';
   updateListFilterHint();
-  if (LIST_FILTER.gameKey && LIST_FILTER.drawDate) loadList();
+  if (ADMIN.role > 0 && LIST_FILTER.drawDate) loadList();
+  else if (LIST_FILTER.gameKey && LIST_FILTER.drawDate) loadList();
   else refreshListView();
 }
 
 function refreshListView() {
+  if (ADMIN.role > 0) {
+    if (!LIST_FILTER.drawDate) {
+      document.getElementById('listWrap').innerHTML = '<div class="empty">📅 เลือกงวดวันที่</div>';
+      _bks = [];
+      return;
+    }
+    loadList();
+    return;
+  }
   if (!LIST_FILTER.gameKey) {
     document.getElementById('listWrap').innerHTML = '<div class="empty">🎮 เลือกเกมด้านบน</div>';
     _bks = [];
@@ -2003,17 +2049,19 @@ function refreshListView() {
 
 async function loadList(){
   initListFilterUI();
-  if (!LIST_FILTER.gameKey || !LIST_FILTER.drawDate) {
+  if (ADMIN.role > 0) {
+    if (!LIST_FILTER.drawDate) {
+      refreshListView();
+      return;
+    }
+  } else if (!LIST_FILTER.gameKey || !LIST_FILTER.drawDate) {
     refreshListView();
     return;
   }
   document.getElementById('listWrap').innerHTML='<div class="empty">⏳</div>';
-  var {data, error} = await sb.from('bookings')
-    .select('*')
-    .eq('game_key', LIST_FILTER.gameKey)
-    .eq('draw_date', LIST_FILTER.drawDate)
-    .order('created_at',{ascending:false})
-    .limit(500);
+  var q = sb.from('bookings').select('*').eq('draw_date', LIST_FILTER.drawDate);
+  if (!ADMIN.role && LIST_FILTER.gameKey) q = q.eq('game_key', LIST_FILTER.gameKey);
+  var {data, error} = await q.order('created_at',{ascending:false}).limit(500);
   if (error) {
     document.getElementById('listWrap').innerHTML='<div class="empty">โหลดไม่สำเร็จ</div>';
     toast(dbErrMsg(error),'err');
@@ -2076,8 +2124,8 @@ function renderList(list){
     visible.forEach(function(b) {
       loadBookingImages(b.id, b.game_key, b.draw_date, 'img-' + b.id);
     });
-  } else if (ADMIN.role === 2 && LIST_FILTER.gameKey && LIST_FILTER.drawDate) {
-    loadListImageStatusesForAdmin2(visible, LIST_FILTER.gameKey, LIST_FILTER.drawDate);
+  } else if (ADMIN.role === 2 && LIST_FILTER.drawDate) {
+    loadListImageStatusesForAdmin2(visible, LIST_FILTER.drawDate);
   }
 }
 
@@ -2103,14 +2151,13 @@ function getBookingImageStatus(images, booking) {
   return { state: 'none', text: '⏳ ยังไม่มีรูป' };
 }
 
-async function loadListImageStatusesForAdmin2(bookings, gameKey, drawDate) {
+async function loadListImageStatusesForAdmin2(bookings, drawDate) {
   if (!bookings || !bookings.length) return;
   var ids = bookings.map(function(b) { return b.id; }).filter(Boolean);
   if (!ids.length) return;
 
   var { data: images, error } = await sb.from('lottery_images')
     .select('booking_id,set_index,file_name,public_url')
-    .eq('game_key', gameKey)
     .eq('draw_date', drawDate)
     .in('booking_id', ids);
 
@@ -2986,9 +3033,9 @@ function refreshAllBookingImages() {
     });
     return;
   }
-  if (ADMIN.role === 2 && LIST_FILTER.gameKey && LIST_FILTER.drawDate && _bks && _bks.length) {
+  if (ADMIN.role === 2 && LIST_FILTER.drawDate && _bks && _bks.length) {
     var visible = _bks.filter(function(b) { return b.status !== 'cancelled'; });
-    loadListImageStatusesForAdmin2(visible, LIST_FILTER.gameKey, LIST_FILTER.drawDate);
+    loadListImageStatusesForAdmin2(visible, LIST_FILTER.drawDate);
   }
 }
 
@@ -3193,14 +3240,15 @@ async function downloadImageBlob(url, filename) {
 }
 
 function openDownloadDrawConfirm() {
-  if (!LIST_FILTER.gameKey || !LIST_FILTER.drawDate) {
-    toast('เลือกเกมและงวดก่อน', 'err');
+  if (!LIST_FILTER.drawDate) {
+    toast('เลือกงวดก่อน', 'err');
     return;
   }
   window._pendingDownloadBookingId = null;
   var detail = document.getElementById('downloadConfirmDetail');
   if (detail) {
-    detail.textContent = 'ดาวน์โหลดรูปใบลอตเตอรี่ทั้งหมดของ ' + getListGameLabel(LIST_FILTER.gameKey) + ' - ' + LIST_FILTER.drawDate + ' เป็นไฟล์รูปแยกทีละไฟล์ (ไม่ใช่ Zip)';
+    var lbl = LIST_FILTER.gameKey ? getListGameLabel(LIST_FILTER.gameKey) + ' - ' : 'ทุกเกม — ';
+    detail.textContent = 'ดาวน์โหลดรูปใบลอตเตอรี่ทั้งหมดของ ' + lbl + LIST_FILTER.drawDate + ' เป็นไฟล์รูปแยกทีละไฟล์ (ไม่ใช่ Zip)';
   }
   document.getElementById('downloadConfirmBg').classList.add('show');
 }
@@ -3224,15 +3272,13 @@ async function executeDownloadDrawImages() {
   closeDownloadConfirm();
   var gameKey = LIST_FILTER.gameKey;
   var drawDate = LIST_FILTER.drawDate;
-  if (!gameKey || !drawDate) return;
+  if (!drawDate) return;
 
   toast('กำลังเตรียมดาวน์โหลด...', 'info');
 
-  var { data: images } = await sb.from('lottery_images')
-    .select('*')
-    .eq('game_key', gameKey)
-    .eq('draw_date', drawDate)
-    .order('file_name', { ascending: true });
+  var imgQ = sb.from('lottery_images').select('*').eq('draw_date', drawDate);
+  if (gameKey) imgQ = imgQ.eq('game_key', gameKey);
+  var { data: images } = await imgQ.order('file_name', { ascending: true });
 
   images = sortTicketImagesByName(images || []);
   if (!images.length) {
@@ -3365,33 +3411,39 @@ async function loadResultPanel() {
   var isA1 = ADMIN.role === 1;
   var html = '';
 
-  html += '<div class="sbox">';
-  html += '<div class="stitle">🏆 บันทึกผลรางวัล</div>';
-  if (!isA1) {
+  if (isA1) {
+    html += '<div class="sbox">';
+    html += '<div class="fg"><label>งวดวันที่</label><input type="date" id="resultDate" class="price-inp" style="text-align:left;font-size:13px" onchange="loadExistingResults()"></div>';
+    html += '</div>';
+  } else {
+    html += '<div class="sbox">';
+    html += '<div class="stitle">🏆 บันทึกผลรางวัล</div>';
     html += '<div style="font-size:11px;color:var(--text2);margin:-6px 0 10px;line-height:1.5">Admin 2 กรอกเลขผล + แจ็คพอต (USD) เองตามงวด — ไม่ดึงจาก API</div>';
+    html += '<div class="form-row">';
+    html += '<div class="fg"><label>งวดวันที่</label><input type="date" id="resultDate" class="price-inp" style="text-align:left;font-size:13px" onchange="loadExistingResults();onResultGameChange()"></div>';
+    html += '<div class="fg"><label>เกม</label><select id="resultGame" class="price-inp" style="text-align:left;font-size:13px" onchange="onResultGameChange()">';
+    html += '<option value="powerball">🔴 Power Ball</option>';
+    html += '<option value="mega">🟡 Mega Millions</option>';
+    html += '<option value="txtwostep">🔵 TX Two Step</option>';
+    html += '<option value="txlotto">🟢 TX Lotto</option>';
+    html += '<option value="allornothing">⚫ All or Nothing</option>';
+    html += '</select></div>';
+    html += '</div>';
+    html += '<div id="resultInputArea"><div style="font-size:12px;color:var(--text2);padding:10px;text-align:center">เลือกงวดและเกมก่อนครับ</div></div>';
+    html += '</div>';
   }
-  html += '<div class="form-row">';
-  html += '<div class="fg"><label>งวดวันที่</label><input type="date" id="resultDate" class="price-inp" style="text-align:left;font-size:13px" onchange="loadExistingResults();onResultGameChange()"></div>';
-  html += '<div class="fg"><label>เกม</label><select id="resultGame" class="price-inp" style="text-align:left;font-size:13px" onchange="onResultGameChange()">';
-  html += '<option value="powerball">🔴 Power Ball</option>';
-  html += '<option value="mega">🟡 Mega Millions</option>';
-  html += '<option value="txtwostep">🔵 TX Two Step</option>';
-  html += '<option value="txlotto">🟢 TX Lotto</option>';
-  html += '<option value="allornothing">⚫ All or Nothing</option>';
-  html += '</select></div>';
-  html += '</div>';
-  html += '<div id="resultInputArea"><div style="font-size:12px;color:var(--text2);padding:10px;text-align:center">เลือกงวดและเกมก่อนครับ</div></div>';
-  html += '</div>';
 
   html += '<div class="sbox">';
   html += '<div class="stitle">🎉 ผู้ถูกรางวัล <span class="badge" id="winnerCount">0 คน</span></div>';
   html += '<div id="winnerList"><div class="empty">เลือกงวดเพื่อดูผู้ถูกรางวัล</div></div>';
   html += '</div>';
 
-  html += '<div class="sbox">';
-  html += '<div class="stitle">💰 สรุปรายได้ Admin 2</div>';
-  html += '<div id="incomeArea"><div class="empty">เลือกงวดก่อนครับ</div></div>';
-  html += '</div>';
+  if (!isA1) {
+    html += '<div class="sbox">';
+    html += '<div class="stitle">💰 สรุปรายได้ Admin 2</div>';
+    html += '<div id="incomeArea"><div class="empty">เลือกงวดก่อนครับ</div></div>';
+    html += '</div>';
+  }
 
   if (isA1) {
     html += '<div class="sbox">';
@@ -3696,10 +3748,9 @@ async function toggleIncomePaid(date, currentPaid) {
 
 async function loadExistingResults() {
   var date = document.getElementById('resultDate') ? document.getElementById('resultDate').value : '';
-  if (date) {
-    await loadWinnerList(date);
-    await loadIncomeArea(date);
-  }
+  if (!date) return;
+  await loadWinnerList(date);
+  await loadIncomeArea(date);
 }
 
 // ── TOAST ───────────────────────────────────────
