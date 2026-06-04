@@ -492,11 +492,13 @@ body.admin-mode #panel-book{display:none!important}
 <div class="panel" id="panel-list">
 <div class="wrap" style="padding-top:12px">
   <div id="adminWhoLabel"></div>
-  <div class="list-date-row show" id="listDateRow">
+  <div class="stitle" style="margin-bottom:6px">🎮 เลือกเกม</div>
+  <div class="game-filter-row" id="listGameFilter"></div>
+  <div class="list-date-row" id="listDateRow">
     <label for="listDrawDate">📅 งวด (US)</label>
     <input type="date" id="listDrawDate" onchange="onListDateChange()">
   </div>
-  <div class="list-filter-hint" id="listFilterHint">เลือกงวดวันที่</div>
+  <div class="list-filter-hint" id="listFilterHint">เลือกเกม แล้วเลือกงวดวันที่</div>
   <div class="list-draw-bar" id="listDrawBar">
     <span class="title" id="listDrawTitle"></span>
     <button type="button" class="bk-btn ok" style="background:var(--lav);color:#fff;padding:8px 14px" onclick="openDownloadDrawConfirm()">⬇ ดาวน์โหลดรูปทั้งหมด</button>
@@ -506,7 +508,7 @@ body.admin-mode #panel-book{display:none!important}
     <input class="search-bar" id="searchIn" placeholder="🔍 ค้นหา..." oninput="filterList()" style="margin-bottom:0">
     <button class="bk-btn ok" style="white-space:nowrap;padding:8px 12px;border-radius:var(--r3)" onclick="loadList()" title="โหลดใหม่">🔄</button>
   </div>
-  <div id="listWrap"><div class="empty">เลือกงวดวันที่</div></div>
+  <div id="listWrap"><div class="empty">เลือกเกมและงวดวันที่</div></div>
 </div>
 </div>
 
@@ -771,7 +773,8 @@ const GAMES = {
 var PRICES = {};
 var _lastDbError = null;
 var ADMIN = {role:0};
-var LIST_FILTER = { gameKey: '', drawDate: '' };
+var LIST_FILTER = { gameKey: null, drawDate: '' };
+var LIST_ALL_GAMES_KEY = '__all__';
 var ADMIN_GAME_ORDER = [
   { key: 'powerball', label: 'Power Ball' },
   { key: 'mega', label: 'Mega' },
@@ -929,7 +932,7 @@ async function init() {
       { event: '*', schema: 'public', table: 'bookings' },
       function(payload) {
         if (ADMIN.role > 0) {
-          if (LIST_FILTER.drawDate) loadList();
+          if (isListFilterReady()) loadList();
           loadStats();
         }
         if (S.method === 'draw' && S.game && S.drawDate) loadRandomTicketPool();
@@ -941,7 +944,7 @@ async function init() {
         if (ADMIN.role === 1) refreshAllBookingImages();
         if (ADMIN.role === 2) {
           loadTicketGallery();
-          if (LIST_FILTER.drawDate) {
+          if (isListFilterReady()) {
             var vis = (_bks || []).filter(function(b) { return b.status !== 'cancelled'; });
             if (vis.length) loadListImageStatusesForAdmin2(vis, LIST_FILTER.drawDate);
           }
@@ -1888,6 +1891,7 @@ function finishAdminLogin(role) {
   setAdminUILayout();
   updateAdminHeader();
   startAdminClock();
+  initListFilterUI();
   switchTab(role === 2 ? 'result' : 'list');
   loadStats();
   toast('เข้าสู่ระบบแล้ว 🌸', 'ok');
@@ -1915,7 +1919,7 @@ function adminLogout(){
   if (loginBtn) loginBtn.style.display = '';
   setAdminUILayout();
   document.getElementById('adminWhoLabel').innerHTML='';
-  LIST_FILTER = { gameKey: '', drawDate: '' };
+  LIST_FILTER = { gameKey: null, drawDate: '' };
   document.getElementById('listDateRow').classList.remove('show');
   var ld = document.getElementById('listDrawDate');
   if (ld) ld.value = '';
@@ -1938,7 +1942,7 @@ function switchTab(t){
   document.querySelectorAll('.nav-btn:not(.logout)').forEach(function(b){b.classList.remove('active');});
   var nb=document.getElementById('nav'+t.charAt(0).toUpperCase()+t.slice(1));
   if(nb) nb.classList.add('active');
-  if(t==='list'){ refreshListView(); }
+  if(t==='list'){ initListFilterUI(); refreshListView(); }
   if(ADMIN.role>0) setAdminUILayout();
   if(t==='price') loadPricePanel();
   if(t==='result') loadResultPanel();
@@ -1951,6 +1955,7 @@ function initListFilterUI() {
   var row = document.getElementById('listGameFilter');
   if (!row || row.dataset.built) return;
   var html = '';
+  html += '<button type="button" class="game-filter-pill" data-gk="' + LIST_ALL_GAMES_KEY + '" onclick="selectListGame(\'' + LIST_ALL_GAMES_KEY + '\')">📋 การจองทั้งหมด</button>';
   ADMIN_GAME_ORDER.forEach(function(g) {
     html += '<button type="button" class="game-filter-pill" data-gk="' + g.key + '" onclick="selectListGame(\'' + g.key + '\')">' + g.label + '</button>';
   });
@@ -1958,7 +1963,16 @@ function initListFilterUI() {
   row.dataset.built = '1';
 }
 
+function isListAllGames() {
+  return LIST_FILTER.gameKey === LIST_ALL_GAMES_KEY;
+}
+
+function isListFilterReady() {
+  return LIST_FILTER.gameKey != null && !!LIST_FILTER.drawDate;
+}
+
 function getListGameLabel(key) {
+  if (key === LIST_ALL_GAMES_KEY) return 'ทุกเกม';
   var found = ADMIN_GAME_ORDER.find(function(g) { return g.key === key; });
   return found ? found.label : key;
 }
@@ -1968,23 +1982,8 @@ function updateListFilterHint() {
   var bar = document.getElementById('listDrawBar');
   var title = document.getElementById('listDrawTitle');
   if (!el) return;
-  if (ADMIN.role > 0) {
-    if (!LIST_FILTER.drawDate) {
-      el.textContent = 'เลือกงวดวันที่ด้านบน';
-      if (bar) bar.classList.remove('show');
-      return;
-    }
-    el.textContent = '📋 รายการจอง — งวด ' + LIST_FILTER.drawDate;
-    if (bar && title && ADMIN.role === 1) {
-      title.textContent = 'งวด ' + LIST_FILTER.drawDate + ' (ทุกเกม)';
-      bar.classList.add('show');
-    } else if (bar) {
-      bar.classList.remove('show');
-    }
-    return;
-  }
-  if (!LIST_FILTER.gameKey) {
-    el.textContent = 'เลือกเกมก่อน แล้วเลือกงวดวันที่';
+  if (LIST_FILTER.gameKey == null) {
+    el.textContent = 'เลือกเกม หรือ「การจองทั้งหมด」แล้วเลือกงวดวันที่';
     if (bar) bar.classList.remove('show');
     return;
   }
@@ -1995,7 +1994,7 @@ function updateListFilterHint() {
   }
   el.textContent = '📋 รายการจอง';
   if (bar && title && ADMIN.role === 1) {
-    title.textContent = getListGameLabel(LIST_FILTER.gameKey) + ' - ' + LIST_FILTER.drawDate;
+    title.textContent = getListGameLabel(LIST_FILTER.gameKey) + ' · ' + LIST_FILTER.drawDate;
     bar.classList.add('show');
   } else if (bar) {
     bar.classList.remove('show');
@@ -2019,23 +2018,13 @@ function onListDateChange() {
   var dateInp = document.getElementById('listDrawDate');
   LIST_FILTER.drawDate = dateInp ? dateInp.value : '';
   updateListFilterHint();
-  if (ADMIN.role > 0 && LIST_FILTER.drawDate) loadList();
-  else if (LIST_FILTER.gameKey && LIST_FILTER.drawDate) loadList();
+  if (isListFilterReady()) loadList();
   else refreshListView();
 }
 
 function refreshListView() {
-  if (ADMIN.role > 0) {
-    if (!LIST_FILTER.drawDate) {
-      document.getElementById('listWrap').innerHTML = '<div class="empty">📅 เลือกงวดวันที่</div>';
-      _bks = [];
-      return;
-    }
-    loadList();
-    return;
-  }
-  if (!LIST_FILTER.gameKey) {
-    document.getElementById('listWrap').innerHTML = '<div class="empty">🎮 เลือกเกมด้านบน</div>';
+  if (LIST_FILTER.gameKey == null) {
+    document.getElementById('listWrap').innerHTML = '<div class="empty">🎮 เลือกเกม หรือ「การจองทั้งหมด」</div>';
     _bks = [];
     return;
   }
@@ -2048,18 +2037,13 @@ function refreshListView() {
 }
 
 async function loadList(){
-  if (ADMIN.role > 0) {
-    if (!LIST_FILTER.drawDate) {
-      refreshListView();
-      return;
-    }
-  } else if (!LIST_FILTER.gameKey || !LIST_FILTER.drawDate) {
+  if (!isListFilterReady()) {
     refreshListView();
     return;
   }
   document.getElementById('listWrap').innerHTML='<div class="empty">⏳</div>';
   var q = sb.from('bookings').select('*').eq('draw_date', LIST_FILTER.drawDate);
-  if (!ADMIN.role && LIST_FILTER.gameKey) q = q.eq('game_key', LIST_FILTER.gameKey);
+  if (!isListAllGames()) q = q.eq('game_key', LIST_FILTER.gameKey);
   var {data, error} = await q.order('created_at',{ascending:false}).limit(500);
   if (error) {
     document.getElementById('listWrap').innerHTML='<div class="empty">โหลดไม่สำเร็จ</div>';
@@ -3032,7 +3016,7 @@ function refreshAllBookingImages() {
     });
     return;
   }
-  if (ADMIN.role === 2 && LIST_FILTER.drawDate && _bks && _bks.length) {
+  if (ADMIN.role === 2 && isListFilterReady() && _bks && _bks.length) {
     var visible = _bks.filter(function(b) { return b.status !== 'cancelled'; });
     loadListImageStatusesForAdmin2(visible, LIST_FILTER.drawDate);
   }
@@ -3239,14 +3223,14 @@ async function downloadImageBlob(url, filename) {
 }
 
 function openDownloadDrawConfirm() {
-  if (!LIST_FILTER.drawDate) {
-    toast('เลือกงวดก่อน', 'err');
+  if (!isListFilterReady()) {
+    toast('เลือกเกม/การจองทั้งหมด และงวดก่อน', 'err');
     return;
   }
   window._pendingDownloadBookingId = null;
   var detail = document.getElementById('downloadConfirmDetail');
   if (detail) {
-    var lbl = LIST_FILTER.gameKey ? getListGameLabel(LIST_FILTER.gameKey) + ' - ' : 'ทุกเกม — ';
+    var lbl = isListAllGames() ? 'ทุกเกม · ' : (getListGameLabel(LIST_FILTER.gameKey) + ' · ');
     detail.textContent = 'ดาวน์โหลดรูปใบลอตเตอรี่ทั้งหมดของ ' + lbl + LIST_FILTER.drawDate + ' เป็นไฟล์รูปแยกทีละไฟล์ (ไม่ใช่ Zip)';
   }
   document.getElementById('downloadConfirmBg').classList.add('show');
@@ -3269,14 +3253,13 @@ function closeDownloadConfirm() {
 
 async function executeDownloadDrawImages() {
   closeDownloadConfirm();
-  var gameKey = LIST_FILTER.gameKey;
   var drawDate = LIST_FILTER.drawDate;
   if (!drawDate) return;
 
   toast('กำลังเตรียมดาวน์โหลด...', 'info');
 
   var imgQ = sb.from('lottery_images').select('*').eq('draw_date', drawDate);
-  if (gameKey) imgQ = imgQ.eq('game_key', gameKey);
+  if (!isListAllGames() && LIST_FILTER.gameKey) imgQ = imgQ.eq('game_key', LIST_FILTER.gameKey);
   var { data: images } = await imgQ.order('file_name', { ascending: true });
 
   images = sortTicketImagesByName(images || []);
