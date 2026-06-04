@@ -959,6 +959,8 @@ async function init() {
       }
     )
     .subscribe();
+
+  document.addEventListener('click', onHomeEmptyClick);
 }
 init();
 
@@ -1819,6 +1821,18 @@ function resetForm(){
   document.querySelectorAll('.game-big-card').forEach(function(c){c.classList.remove('sel');});
   ['secDate','secMethod','secSets','secPP','secAllSets','secImgs','secInfo','secSubmit'].forEach(function(id){document.getElementById(id).style.display='none';});
   document.getElementById('fName').value='';document.getElementById('fPhone').value='';document.getElementById('fNote').value='';
+}
+
+/** คลิกพื้นที่ว่างนอกการ์ด/ฟอร์มจอง → ปิดหน้าเลือกเกม */
+function onHomeEmptyClick(e) {
+  if (!S.game) return;
+  var bookPanel = document.getElementById('panel-book');
+  if (!bookPanel || !bookPanel.classList.contains('active')) return;
+  var t = e.target;
+  if (t.closest('.game-big-card')) return;
+  if (t.closest('#panel-book .wrap')) return;
+  if (t.closest('#loginBg, #pinBg, .modal-bg.show, .ticket-modal-bg.show')) return;
+  resetForm();
 }
 
 // ── ADMIN AUTH ──────────────────────────────────
