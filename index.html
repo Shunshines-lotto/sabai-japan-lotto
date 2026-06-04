@@ -33,10 +33,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 .logo-text h1{font-family:'Itim',cursive;font-size:clamp(20px,5vw,28px);color:var(--text)}
 .logo-text h1 span{color:var(--pink)}
-.logo-sub{font-size:12px;color:var(--text2);margin-top:2px}
-.line-badge{display:inline-flex;align-items:center;gap:5px;background:var(--white);border-radius:var(--r3);padding:5px 14px;font-size:12px;color:#00b900;font-weight:600;box-shadow:0 2px 8px rgba(0,185,0,.15);margin-top:8px}
-.admin-btns{display:flex;justify-content:center;gap:10px;margin-top:10px}
-.admin-btn-hd{padding:7px 20px;border:none;border-radius:var(--r3);color:#fff;font-family:'Mitr',sans-serif;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 3px 12px var(--shadow)}
+.site-updated{font-size:12px;color:var(--text2);margin-top:6px}
+.header-top{display:flex;align-items:flex-start;justify-content:center;gap:12px;position:relative;width:100%;max-width:520px;margin:0 auto}
+.header-login{position:absolute;right:0;top:0;padding:8px 16px;border:2px solid var(--pink3);background:var(--white);border-radius:var(--r3);color:var(--text);font-family:'Mitr',sans-serif;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 2px 10px var(--shadow);transition:all .15s}
+.header-login:hover{border-color:var(--pink);color:var(--pink)}
+.line-badge{display:inline-flex;align-items:center;gap:5px;background:var(--white);border-radius:var(--r3);padding:5px 14px;font-size:12px;color:#00b900;font-weight:600;box-shadow:0 2px 8px rgba(0,185,0,.15);margin-top:10px}
 
 /* ADMIN BAR */
 .admin-bar{display:none;gap:8px;padding:12px 14px 0;position:relative;z-index:1}
@@ -60,17 +61,21 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .stitle{font-family:'Mitr',sans-serif;font-size:13px;font-weight:600;color:var(--pink);margin-bottom:12px;display:flex;align-items:center;gap:6px}
 .stitle .badge{background:var(--pink3);color:var(--pink);border-radius:var(--r3);padding:2px 9px;font-size:10px}
 
-/* GAME GRID */
-.game-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.game-card{background:var(--cream);border:2px solid var(--pink3);border-radius:var(--r);padding:12px 6px;text-align:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+/* GAME GRID (หน้าแรก) */
+.game-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px}
+.game-card{background:var(--white);border:2px solid var(--pink3);border-radius:var(--r);padding:16px 12px;text-align:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;box-shadow:0 4px 14px var(--shadow);display:flex;flex-direction:column;align-items:center;gap:6px}
 .game-card::before{content:'';position:absolute;inset:0;background:var(--gc,var(--pink));opacity:0;transition:opacity .2s}
-.game-card:hover::before{opacity:.07}
-.game-card:hover{transform:translateY(-2px);box-shadow:0 5px 16px var(--shadow)}
-.game-card.sel{border-color:var(--gc,var(--pink));box-shadow:0 0 0 2px var(--gc,var(--pink));background:var(--white)}
-.game-card.sel::before{opacity:.1}
-.game-emoji{font-size:22px;display:block;margin-bottom:4px;position:relative}
-.game-name{font-family:'Mitr',sans-serif;font-size:10px;font-weight:600;color:var(--text);line-height:1.3;position:relative}
-.game-price{font-size:12px;color:var(--pink);margin-top:3px;position:relative;font-weight:700;font-family:'Itim',cursive}
+.game-card:hover::before{opacity:.06}
+.game-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px var(--shadow)}
+.game-card.sel{border-color:var(--gc,var(--pink));box-shadow:0 0 0 2px var(--gc,var(--pink)),0 6px 18px var(--shadow)}
+.game-card.sel::before{opacity:.08}
+.game-ball-icon{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 3px 12px var(--shadow);position:relative;z-index:1;border:2px solid rgba(255,255,255,.85)}
+.game-card-name{font-family:'Mitr',sans-serif;font-size:13px;font-weight:600;color:var(--text);line-height:1.35;position:relative;z-index:1;margin:2px 0 4px}
+.game-card-row{width:100%;position:relative;z-index:1;padding:4px 0}
+.game-card-lbl{font-size:10px;color:var(--text3);margin-bottom:2px}
+.game-card-val{font-family:'Mitr',sans-serif;font-size:12px;font-weight:600;color:var(--text);line-height:1.35}
+.game-card-jackpot .game-card-val{font-family:'Itim',cursive;font-size:15px;color:var(--peach)}
+.site-footer{position:relative;z-index:1;text-align:center;padding:20px 16px 28px;font-size:11px;color:var(--text3);line-height:1.6;max-width:420px;margin:0 auto}
 
 /* METHOD */
 .method-row{display:flex;gap:7px}
@@ -129,7 +134,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 
 /* BOOKING LIST */
 .bk-card{background:var(--white);border:2px solid var(--pink3);border-radius:var(--r);padding:13px;margin-bottom:9px;box-shadow:0 3px 10px var(--shadow)}
-.bk-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.bk-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
 .bk-id{font-family:'Itim',cursive;font-size:12px;color:var(--lav);font-weight:700}
 .bk-game{font-size:13px;font-weight:600;margin-bottom:4px}
 .bk-balls{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
@@ -150,6 +155,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .status-tag.pending{background:var(--lav3);color:#6d28d9}
 .status-tag.confirmed{background:#d1fae5;color:#065f46}
 .status-tag.cancelled{background:#ffe4e6;color:#be123c}
+.img-status-tag{font-size:10px;padding:3px 10px;border-radius:var(--r3);font-weight:600;white-space:nowrap;flex-shrink:0}
+.img-status-tag.done{background:#d1fae5;color:#065f46}
+.img-status-tag.partial{background:#fff9c4;color:#854d0e}
+.img-status-tag.none{background:var(--pink3);color:var(--text2)}
 .admin-label{display:inline-block;background:linear-gradient(135deg,var(--pink),var(--lav));color:var(--white);font-family:'Mitr',sans-serif;font-size:11px;font-weight:600;padding:3px 12px;border-radius:var(--r3);margin-bottom:6px}
 .admin-clock{font-size:12px;color:var(--text);margin-top:4px;font-weight:500}
 .draw-tz-note{font-size:11px;color:var(--text2);margin-top:6px;line-height:1.5;max-width:420px}
@@ -192,11 +201,27 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .random-ticket-card.sel{border-color:var(--pink);box-shadow:0 0 0 3px var(--pink3)}
 .random-ticket-card img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block}
 .random-ticket-card .lbl{position:absolute;bottom:0;left:0;right:0;background:rgba(255,139,171,.92);color:#fff;font-size:10px;text-align:center;padding:4px;font-family:Itim,cursive}
+.random-fullscreen-bg{z-index:2000;padding:0;align-items:stretch;justify-content:stretch}
+#randomTicketModalBg.show{display:flex!important;visibility:visible;opacity:1;background:rgba(0,0,0,.88);backdrop-filter:none}
+.random-fullscreen-inner{position:relative;width:100%;min-height:100dvh;min-height:100vh;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:transparent;padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));box-sizing:border-box}
+#randomTicketModalImg{max-width:100%;max-height:calc(100dvh - 150px);max-height:calc(100vh - 150px);width:auto;height:auto;object-fit:contain;border-radius:8px;display:block;background:#111}
+.random-fs-close{position:absolute;top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right));width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,.5);background:rgba(255,255,255,.15);color:#fff;font-size:20px;cursor:pointer;z-index:2}
+.random-fs-lbl{color:#fff;font-family:Itim,cursive;font-size:16px;margin-top:10px;text-align:center}
+.random-fs-actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;justify-content:center}
+.random-fs-actions button{padding:12px 22px;border-radius:var(--r3);border:none;font-family:Mitr,sans-serif;font-size:14px;font-weight:600;cursor:pointer}
+.ticket-gallery-actions{display:flex;gap:5px;margin-top:6px}
+.tg-btn{flex:1;padding:7px 4px;border:1.5px solid var(--pink3);border-radius:8px;background:var(--cream);font-size:10px;cursor:pointer;font-family:'Mitr',sans-serif;color:var(--text);line-height:1.2}
+.tg-btn:active{transform:scale(.98)}
+.tg-btn-danger{border-color:#fecaca;background:#fff5f5;color:#dc2626}
+.tg-btn-rename{flex:1.4;border-color:var(--lav2);color:var(--lav);font-weight:600}
+#ticketRenameBg{z-index:2100}
 .modal{background:var(--white);border-radius:22px;padding:26px 22px;max-width:330px;width:90%;text-align:center;box-shadow:0 16px 52px rgba(255,139,171,.3);border:2px solid var(--pink3);animation:pop .38s cubic-bezier(.34,1.56,.64,1)}
 @keyframes pop{from{transform:scale(.72);opacity:0}to{transform:scale(1);opacity:1}}
 .modal-anim{font-size:54px;margin-bottom:7px;animation:wiggle .9s ease infinite}
 @keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
 .modal-title{font-family:'Itim',cursive;font-size:21px;color:var(--pink);margin-bottom:5px}
+.invoice-title{font-family:'Itim',cursive;font-size:20px;color:var(--pink);margin-bottom:4px}
+.invoice-customer{font-family:'Mitr',sans-serif;font-size:26px;font-weight:700;color:var(--text);margin-bottom:12px;line-height:1.25;word-break:break-word}
 .modal-id{font-family:'Itim',cursive;font-size:18px;color:var(--lav);margin:7px 0}
 .modal-price{font-size:19px;font-family:'Itim',cursive;color:var(--peach);margin-bottom:5px}
 .modal-sub{font-size:12px;color:var(--text2);margin-bottom:16px}
@@ -230,7 +255,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .list-date-row input[type=date]{flex:1;border:2px solid var(--pink3);border-radius:var(--r2);padding:8px 10px;font-family:'Noto Sans Thai','Mitr',sans-serif;font-size:13px;color:var(--text);background:var(--cream);outline:none}
 .list-date-row input[type=date]:focus{border-color:var(--pink);background:var(--white)}
 .list-filter-hint{font-size:12px;color:var(--text2);margin-bottom:8px;min-height:18px}
-@media(max-width:480px){.form-row{grid-template-columns:1fr}.nb{width:30px;height:30px;font-size:10px}.price-grid{grid-template-columns:1fr}}
+@media(max-width:480px){.form-row{grid-template-columns:1fr}.nb{width:30px;height:30px;font-size:10px}.price-grid{grid-template-columns:1fr}.game-grid{grid-template-columns:repeat(2,1fr);gap:10px}.header-top{max-width:100%;padding-right:72px}}
+@media(max-width:360px){.game-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -241,18 +267,17 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <div class="petal" style="left:85%;animation-duration:10s;animation-delay:3s">✨</div>
 
 <div class="header">
-  <div class="logo-wrap">
-    <div class="logo-icon" id="logoIcon">🎰</div>
-    <div class="logo-text">
-      <h1><span>Sabai</span> Japan Lotto</h1>
-      <div class="logo-sub">🇺🇸 US Lottery Booking</div>
+  <div class="header-top">
+    <div class="logo-wrap">
+      <div class="logo-icon" id="logoIcon">🎰</div>
+      <div class="logo-text">
+        <h1><span>Sabai</span> Japan Lotto</h1>
+      </div>
     </div>
+    <button type="button" class="header-login" id="headerLoginBtn" onclick="openLogin()">Log in</button>
   </div>
-  <div style="margin-top:8px"><span class="line-badge">ติดต่อสอบถาม LINE: sabaijapanlotto</span></div>
-  <div class="admin-btns">
-    <button class="admin-btn-hd" style="background:linear-gradient(135deg,var(--pink),var(--lav))" onclick="chooseAdmin(1)">👑 Admin 1</button>
-    <button class="admin-btn-hd" style="background:linear-gradient(135deg,var(--lav),var(--sky))" onclick="chooseAdmin(2)">👔 Admin 2</button>
-  </div>
+  <div class="site-updated" id="siteLastUpdated"></div>
+  <div><span class="line-badge">ติดต่อสอบถาม LINE: @sabaijapanlotto</span></div>
 </div>
 
 <div class="admin-bar" id="adminBar">
@@ -273,12 +298,13 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <div class="panel active" id="panel-book">
 <div class="wrap" style="padding-top:14px">
   <div class="sbox">
-    <div class="stitle">🎮 เลือกประเภท</div>
+    <div class="stitle">🎮 เลือกประเภทหวย</div>
     <div class="game-grid" id="gameGrid"></div>
   </div>
   <div class="sbox" id="secDate" style="display:none">
     <div class="stitle">📅 งวด <span class="badge" id="drawHint"></span></div>
-    <div class="draw-tz-note">วันที่งวดตาม <b>เวลาอเมริกา (Central — Texas)</b> ไม่ใช่เวลาไทย</div>
+    <div class="draw-tz-note">วันที่งวด = <b>เวลา Texas (Central)</b> · ปิดรับจอง <b>06:30 น. (ไทย)</b> = <b>18:30 น. (Texas)</b> ของวันงวด — เลยเวลาแสดงงวดถัดไป</div>
+    <div class="draw-tz-note" id="drawSalesNote" style="margin-top:4px;color:var(--lav)"></div>
     <div class="draw-days" id="drawDays"></div>
   </div>
   <div id="secOnline" style="display:none">
@@ -297,7 +323,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   </div>
   <div class="sbox" id="secImgs" style="display:none">
     <div class="stitle">📄 เลือกใบสุ่ม <span class="badge" id="randomPoolCount"></span></div>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:6px">แตะรูปเพื่อเลือกใบที่ต้องการจอง (งวดตามวันที่อเมริกาที่เลือกด้านบน)</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:6px">แตะรูปเพื่อขยายเต็มจอ · กด「เลือกใบนี้」เพื่อจอง (งวดตามวันที่อเมริกาที่เลือกด้านบน)</div>
     <div id="randomTicketGrid"><div class="empty">📂 ยังไม่มีรูปใบสุ่ม</div></div>
   </div>
   <div class="sbox" id="secSets" style="display:none">
@@ -375,11 +401,12 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 </div>
 </div>
 
-<!-- CONFIRM MODAL -->
+<!-- CONFIRM MODAL (Invoice) -->
 <div class="modal-bg" id="confirmBg">
   <div class="modal" style="max-width:400px">
     <div style="font-size:36px;margin-bottom:8px">🎟️</div>
-    <div class="modal-title" style="margin-bottom:14px">ยืนยันการจอง</div>
+    <div class="invoice-title">Invoice</div>
+    <div class="invoice-customer" id="confirmCustomerName">—</div>
 
     <div id="confirmDetail" style="background:var(--cream);border-radius:var(--r2);padding:14px;margin-bottom:14px;text-align:left;border:2px solid var(--pink3)"></div>
 
@@ -402,6 +429,33 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     </div>
     <div id="ticketModalBody"></div>
     <div class="ticket-modal-actions" id="ticketModalActions"></div>
+  </div>
+</div>
+
+<!-- RANDOM TICKET FULLSCREEN (จองใบสุ่ม) -->
+<div class="modal-bg random-fullscreen-bg" id="randomTicketModalBg" onclick="if(event.target===this)closeRandomTicketFullscreen()">
+  <div class="random-fullscreen-inner" onclick="event.stopPropagation()">
+    <button type="button" class="random-fs-close" onclick="closeRandomTicketFullscreen()" aria-label="ปิด">✕</button>
+    <img id="randomTicketModalImg" src="" alt="ใบลอตเตอรี่">
+    <div class="random-fs-lbl" id="randomTicketModalLbl"></div>
+    <div class="random-fs-actions">
+      <button type="button" style="background:rgba(255,255,255,.2);color:#fff;border:2px solid rgba(255,255,255,.4)" onclick="closeRandomTicketFullscreen()">ปิด</button>
+      <button type="button" style="background:linear-gradient(135deg,var(--pink),var(--lav));color:#fff" onclick="confirmRandomTicketFromModal()">เลือกใบนี้</button>
+    </div>
+  </div>
+</div>
+
+<!-- TICKET RENAME (Admin 2) -->
+<div class="modal-bg" id="ticketRenameBg" onclick="if(event.target===this)closeTicketRenameModal()">
+  <div class="modal" style="max-width:360px" onclick="event.stopPropagation()">
+    <div style="font-size:28px;margin-bottom:6px">✏️</div>
+    <div class="modal-title" style="font-size:17px;margin-bottom:10px">แก้ไขชื่อไฟล์</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:8px">ไม่ต้องใส่นามสกุล (.jpg) · ตัวอย่าง P1, M2, T3</div>
+    <input type="text" id="ticketRenameInput" class="price-inp" style="width:100%;text-align:left;font-size:14px;margin-bottom:12px" maxlength="48">
+    <div style="display:flex;gap:10px">
+      <button type="button" onclick="closeTicketRenameModal()" style="flex:1;padding:11px;background:var(--cream);border:2px solid var(--pink3);border-radius:var(--r3);font-family:Mitr,sans-serif;cursor:pointer">ยกเลิก</button>
+      <button type="button" onclick="saveTicketRename()" style="flex:1;padding:11px;background:linear-gradient(135deg,var(--pink),var(--lav));border:none;border-radius:var(--r3);color:#fff;font-family:Mitr,sans-serif;font-weight:600;cursor:pointer">บันทึก</button>
+    </div>
   </div>
 </div>
 
@@ -456,6 +510,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   </div>
 </div>
 
+<footer class="site-footer">
+  เว็บไซต์นี้ใช้สำหรับจัดเก็บ แสดงผล และวิเคราะห์ข้อมูลผลรางวัลเท่านั้น<br>
+  ข้อมูลอ้างอิงจากแหล่งข้อมูลสาธารณะ
+</footer>
+
 <div class="toast-wrap" id="toastWrap"></div>
 
 <script>
@@ -463,6 +522,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 const SUPA_URL = 'https://jbxvloruouddlkovdoot.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpieHZsb3J1b3VkZGxrb3Zkb290Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0ODk2NzUsImV4cCI6MjA5NjA2NTY3NX0.Upe10fvcSE39KrGZO3C6i9TiuJV_ajFswm6lABJ2w9w';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+/** ตั้งให้ตรงกับ Supabase secret BOOKING_NOTIFY_SECRET (ดู docs/LINE-MESSAGING-API.md) */
+const LINE_NOTIFY_SECRET = '';
 
 const USD_TO_THB = 32;
 
@@ -584,11 +645,95 @@ var ADMIN_GAME_ORDER = [
 var PINS = {1:'1567', 2:'2810'};
 var _pTarget=0, _pVal='';
 var DAY_MAP={MO:'Mon',TU:'Tue',WE:'Wed',TH:'Thu',FR:'Fri',SA:'Sat',SU:'Sun'};
+var DAY_MAP_TH={MO:'จันทร์',TU:'อังคาร',WE:'พุธ',TH:'พฤหัส',FR:'ศุกร์',SA:'เสาร์',SU:'อาทิตย์'};
+/** ข้อความแจ็กพอตบนการ์ดหน้าแรก (แสดงผลอย่างเดียว — แก้ตัวเลขได้ตามต้องการ) */
+var GAME_CARD_JACKPOT={
+  powerball:'$156 Million',
+  mega:'$250 Million',
+  txtwostep:'ตามประกาศงวด',
+  txlotto:'ตามประกาศงวด',
+  allornothing:'ตามประกาศงวด'
+};
+var GAME_DISPLAY_NAME={
+  powerball:'Powerball',
+  mega:'Mega Millions',
+  txtwostep:'TX Two Step',
+  txlotto:'TX Lotto',
+  allornothing:'All or Nothing'
+};
 var US_DRAW_TZ='America/Chicago';
+var THAI_TZ='Asia/Bangkok';
+/** ปิดขาย: 06:30 น. ไทย = 18:30 น. Texas ของวันงวด (ต่าง 12 ชม.) — เลยเวลาแสดงงวดถัดไป */
+var SALES_CLOSE_THAI_HOUR=6;
+var SALES_CLOSE_THAI_MIN=30;
+var SALES_CLOSE_US_HOUR=18;
+var SALES_CLOSE_US_MIN=30;
+var SALES_CLOSE_US_MINUTES=SALES_CLOSE_US_HOUR*60+SALES_CLOSE_US_MIN;
+var SALES_CLOSE_THAI_MINUTES=SALES_CLOSE_THAI_HOUR*60+SALES_CLOSE_THAI_MIN;
 var _adminClockTimer=null;
+var _drawSalesTimer=null;
 
+function tzNowParts(tz){
+  var parts={};
+  new Intl.DateTimeFormat('en-US',{
+    timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',
+    hour:'2-digit',minute:'2-digit',hour12:false
+  }).formatToParts(new Date()).forEach(function(p){
+    if(p.type!=='literal') parts[p.type]=p.value;
+  });
+  return {
+    ymd:parts.year+'-'+parts.month+'-'+parts.day,
+    minutes:parseInt(parts.hour,10)*60+parseInt(parts.minute,10)
+  };
+}
+function thaiTodayYMD(){
+  return new Intl.DateTimeFormat('en-CA',{timeZone:THAI_TZ,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+}
 function usChicagoTodayYMD(){
-  return new Intl.DateTimeFormat('en-CA',{timeZone:US_DRAW_TZ,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  return tzNowParts(US_DRAW_TZ).ymd;
+}
+/** งวด (วันที่ Texas) ปิดขายแล้วหรือยัง — หลัง 18:30 Texas ของวันงวด (= 06:30 ไทย วันถัดไป) */
+function isSalesClosedForDraw(drawYmd){
+  if(!drawYmd) return false;
+  var us=tzNowParts(US_DRAW_TZ);
+  if(drawYmd<us.ymd) return true;
+  if(drawYmd>us.ymd) return false;
+  return us.minutes>=SALES_CLOSE_US_MINUTES;
+}
+function formatThaiSalesCutoffClock(){
+  return new Intl.DateTimeFormat('th-TH',{timeZone:THAI_TZ,hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date());
+}
+function formatTexasSalesCutoffClock(){
+  return new Intl.DateTimeFormat('en-US',{timeZone:US_DRAW_TZ,hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date());
+}
+function updateDrawSalesNote(allDays, openDays){
+  var note=document.getElementById('drawSalesNote');
+  if(!note) return;
+  var thaiNow=formatThaiSalesCutoffClock();
+  var txNow=formatTexasSalesCutoffClock();
+  var skipped=openDays.length&&allDays.length&&openDays[0].val!==allDays[0].val;
+  note.textContent=skipped
+    ? '⏰ เลยเวลาปิดขาย ('+SALES_CLOSE_THAI_HOUR+':'+String(SALES_CLOSE_THAI_MIN).padStart(2,'0')+' น. ไทย) แล้ว — แสดงงวดถัดไป · ตอนนี้ '+thaiNow+' น. (ไทย) / '+txNow+' (Texas)'
+    : '⏰ ปิดรับจอง '+SALES_CLOSE_THAI_HOUR+':'+String(SALES_CLOSE_THAI_MIN).padStart(2,'0')+' น. (ไทย) = '+SALES_CLOSE_US_HOUR+':'+String(SALES_CLOSE_US_MIN).padStart(2,'0')+' น. (Texas) ของวันงวด · ตอนนี้ '+thaiNow+' น. (ไทย)';
+}
+function startDrawSalesWatcher(){
+  stopDrawSalesWatcher();
+  _drawSalesTimer=setInterval(function(){
+    if(!S.game) return;
+    var g=GAMES[S.game];
+    if(!g||g.onlineOnly) return;
+    if(document.getElementById('secDate').style.display==='none') return;
+    var prev=S.drawDate;
+    buildDrawDays(g);
+    if(prev&&S.drawDate&&prev!==S.drawDate){
+      toast('เลยเวลาปิดขายแล้ว — เปลี่ยนเป็นงวด '+usChicagoLabel(S.drawDate),'info');
+      S.selectedTicketId=null;
+      if(S.method==='draw') loadRandomTicketPool();
+    }
+  },30000);
+}
+function stopDrawSalesWatcher(){
+  if(_drawSalesTimer){clearInterval(_drawSalesTimer);_drawSalesTimer=null;}
 }
 function addYMD(ymd,n){
   var p=ymd.split('-').map(Number);
@@ -626,7 +771,8 @@ function updateAdminHeader(){
     '<div class="draw-tz-note">เวลาด้านบน = <b>ประเทศไทย (ICT)</b> · การเลือก<b>งวด/วันที่</b> = <b>เวลาอเมริกา (Central — Texas)</b></div>';
   updateAdminClock();
 }
-var S = {game:null,drawDate:'',method:'random',setsData:[{mainSel:[],bonusSel:[]}],powerPlay:false,sets:1,lastId:'',lastTotal:0,pendingBooking:null,selectedTicketId:null};
+var LINE_OA_ID='@sabaijapanlotto';
+var S = {game:null,drawDate:'',method:'random',setsData:[{mainSel:[],bonusSel:[]}],powerPlay:false,sets:1,lastId:'',lastTotal:0,pendingBooking:null,selectedTicketId:null,lastInvoice:null};
 var _randomPoolCache = {};
 
 // ── INIT ────────────────────────────────────────
@@ -640,6 +786,7 @@ async function init() {
   } catch(e) {
     console.error('loadPrices failed:', e);
   }
+  updateSiteLastUpdated();
   buildGameGrid();
 
   sb.channel('bookings-changes')
@@ -657,7 +804,13 @@ async function init() {
       { event: '*', schema: 'public', table: 'lottery_images' },
       function(payload) {
         if (ADMIN.role === 1) refreshAllBookingImages();
-        if (ADMIN.role === 2) loadTicketGallery();
+        if (ADMIN.role === 2) {
+          loadTicketGallery();
+          if (LIST_FILTER.gameKey && LIST_FILTER.drawDate) {
+            var vis = (_bks || []).filter(function(b) { return b.status !== 'cancelled'; });
+            if (vis.length) loadListImageStatusesForAdmin2(vis, LIST_FILTER.gameKey, LIST_FILTER.drawDate);
+          }
+        }
       }
     )
     .subscribe(function(status) {
@@ -699,17 +852,47 @@ async function loadPrices() {
   return true;
 }
 
+function formatSiteLastUpdated() {
+  var s = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Bangkok',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(new Date());
+  return 'อัปเดตล่าสุด: ' + s + ' น.';
+}
+
+function updateSiteLastUpdated() {
+  var el = document.getElementById('siteLastUpdated');
+  if (el) el.textContent = formatSiteLastUpdated();
+}
+
+function drawDaysThai(drawDays) {
+  return (drawDays || []).map(function(d) { return DAY_MAP_TH[d] || d; }).join(' / ');
+}
+
 function buildGameGrid() {
-  var el=document.getElementById('gameGrid'), html='', keys=Object.keys(GAMES);
-  for (var i=0;i<keys.length;i++) {
-    var g=GAMES[keys[i]], p=PRICES[g.key];
-    var priceLabel = (p && p.sell_price > 0) ? 'บาท '+p.sell_price : 'บาท -';
-    html += '<div class="game-card" style="--gc:'+g.color+'" onclick="pickGame(\''+g.key+'\')">';
-    html += '<span class="game-emoji">'+g.emoji+'</span>';
-    html += '<div class="game-name">'+g.name+'</div>';
-    html += '<div class="game-price">'+priceLabel+'</div></div>';
+  var el = document.getElementById('gameGrid');
+  var html = '';
+  var keys = Object.keys(GAMES);
+  for (var i = 0; i < keys.length; i++) {
+    var g = GAMES[keys[i]];
+    var p = PRICES[g.key];
+    var priceLabel = (p && p.sell_price > 0) ? p.sell_price + ' บาท' : '-';
+    var displayName = GAME_DISPLAY_NAME[g.key] || g.name;
+    var jackpot = GAME_CARD_JACKPOT[g.key] || '—';
+    html += '<div class="game-card" style="--gc:' + g.color + '" onclick="pickGame(\'' + g.key + '\')">';
+    html += '<div class="game-ball-icon" style="background:linear-gradient(145deg,' + g.color + '22,' + g.color + '44)">' + g.emoji + '</div>';
+    html += '<div class="game-card-name">' + escAttr(displayName) + '</div>';
+    html += '<div class="game-card-row game-card-jackpot"><div class="game-card-lbl">แจ็กพอต</div><div class="game-card-val">' + escAttr(jackpot) + '</div></div>';
+    html += '<div class="game-card-row"><div class="game-card-lbl">ออกรางวัล</div><div class="game-card-val">' + escAttr(drawDaysThai(g.drawDays)) + '</div></div>';
+    html += '<div class="game-card-row"><div class="game-card-lbl">ราคา</div><div class="game-card-val">' + escAttr(priceLabel) + '</div></div>';
+    html += '</div>';
   }
-  document.getElementById('gameGrid').innerHTML = html;
+  el.innerHTML = html;
 }
 
 // ── PICK GAME ───────────────────────────────────
@@ -738,24 +921,36 @@ async function pickGame(key) {
     document.getElementById('ppLabel').textContent='+บาท '+(p.pp_sell||0)+'/แถว';
   }
   if (S.method==='draw') loadRandomTicketPool();
+  startDrawSalesWatcher();
 }
 
 function buildDrawDays(g) {
-  var days=[], start=usChicagoTodayYMD();
-  for (var d=0;d<60&&days.length<4;d++) {
+  var all=[], start=usChicagoTodayYMD();
+  for (var d=0;d<90&&all.length<12;d++) {
     var val=addYMD(start,d);
     if (g.drawDays.indexOf(usChicagoWeekday(val))>-1)
-      days.push({label:usChicagoLabel(val),val:val});
+      all.push({label:usChicagoLabel(val),val:val});
   }
+  var days=all.filter(function(x){ return !isSalesClosedForDraw(x.val); }).slice(0,4);
+  if(!days.length) days=all.slice(-4);
+  var keepDate=S.drawDate;
   var html='';
   days.forEach(function(d,i){
-    html+='<div class="day-pill'+(i===0?' active':'')+'" onclick="pickDate(this,\''+d.val+'\')">'+d.label+'</div>';
+    var active=(keepDate&&days.some(function(x){return x.val===keepDate;})?d.val===keepDate:i===0);
+    html+='<div class="day-pill'+(active?' active':'')+'" onclick="pickDate(this,\''+d.val+'\')">'+d.label+'</div>';
   });
   document.getElementById('drawDays').innerHTML=html;
-  S.drawDate=days.length?days[0].val:'';
+  if(keepDate&&days.some(function(x){return x.val===keepDate;})) S.drawDate=keepDate;
+  else S.drawDate=days.length?days[0].val:'';
+  updateDrawSalesNote(all, days);
 }
 
 function pickDate(el,val) {
+  if(isSalesClosedForDraw(val)){
+    toast('เลยเวลาปิดขาย (06:30 น. ไทย / 18:30 น. Texas) สำหรับงวดนี้แล้ว — เลือกงวดถัดไป','err');
+    if(S.game) buildDrawDays(GAMES[S.game]);
+    return;
+  }
   document.querySelectorAll('.day-pill').forEach(function(p){p.classList.remove('active');});
   el.classList.add('active'); S.drawDate=val;
   S.selectedTicketId=null;
@@ -785,6 +980,58 @@ function selectRandomTicket(imageId) {
   document.querySelectorAll('.random-ticket-card').forEach(function(el) {
     el.classList.toggle('sel', el.dataset.id === imageId);
   });
+}
+
+function openRandomTicketFullscreen(imageId, fallbackUrl, fallbackName) {
+  var img = _randomPoolCache[imageId];
+  if (!img && fallbackUrl) {
+    img = { id: imageId, public_url: fallbackUrl, file_name: fallbackName || '' };
+  }
+  if (!img || !(img.public_url || fallbackUrl)) {
+    toast('ไม่พบรูปใบสุ่ม', 'err');
+    return;
+  }
+  var url = img.public_url || fallbackUrl;
+  window._randomPreviewId = imageId;
+  var modal = document.getElementById('randomTicketModalBg');
+  var imgEl = document.getElementById('randomTicketModalImg');
+  var lblEl = document.getElementById('randomTicketModalLbl');
+  if (!modal || !imgEl) return;
+  if (modal.parentNode !== document.body) document.body.appendChild(modal);
+  imgEl.src = url;
+  imgEl.alt = img.file_name || 'ใบลอตเตอรี่';
+  if (lblEl) lblEl.textContent = img.file_name || fallbackName || '';
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeRandomTicketFullscreen() {
+  var modal = document.getElementById('randomTicketModalBg');
+  if (modal) {
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+  var imgEl = document.getElementById('randomTicketModalImg');
+  if (imgEl) imgEl.removeAttribute('src');
+  document.body.style.overflow = '';
+  window._randomPreviewId = null;
+}
+
+function confirmRandomTicketFromModal() {
+  if (window._randomPreviewId) selectRandomTicket(window._randomPreviewId);
+  closeRandomTicketFullscreen();
+  toast('เลือกใบแล้ว — กรอกข้อมูลและบันทึกจอง', 'ok');
+}
+
+function nextPoolFileIndex(gameKey, drawDate, usedNames) {
+  var prefix = getTicketPrefix(gameKey);
+  var maxNum = 0;
+  Object.keys(usedNames).forEach(function(name) {
+    var m = String(name).match(new RegExp('^' + prefix + '(\\d+)$', 'i'));
+    if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10));
+  });
+  return maxNum + 1;
 }
 
 async function loadRandomTicketPool() {
@@ -832,16 +1079,28 @@ async function loadRandomTicketPool() {
   var html = '<div class="random-ticket-grid">';
   pool.forEach(function(img) {
     var sel = S.selectedTicketId === img.id ? ' sel' : '';
-    html += '<div class="random-ticket-card' + sel + '" data-id="' + escAttr(img.id) + '">';
-    html += '<img src="' + escAttr(img.public_url) + '" alt="' + escAttr(img.file_name) + '">';
+    html += '<div class="random-ticket-card' + sel + '" data-id="' + escAttr(img.id) + '" role="button" tabindex="0" aria-label="ดูรูป ' + escAttr(img.file_name) + '">';
+    html += '<img src="' + escAttr(img.public_url) + '" alt="' + escAttr(img.file_name) + '" draggable="false">';
     html += '<div class="lbl">' + escAttr(img.file_name) + '</div></div>';
   });
   html += '</div>';
   grid.innerHTML = html;
-  grid.onclick = function(e) {
-    var card = e.target.closest('.random-ticket-card');
-    if (card && card.dataset.id) selectRandomTicket(card.dataset.id);
-  };
+  grid.querySelectorAll('.random-ticket-card').forEach(function(card) {
+    function openFromCard() {
+      var id = card.getAttribute('data-id');
+      var thumb = card.querySelector('img');
+      var lbl = card.querySelector('.lbl');
+      openRandomTicketFullscreen(id, thumb ? thumb.src : '', lbl ? lbl.textContent : '');
+    }
+    card.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      openFromCard();
+    });
+    card.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openFromCard(); }
+    });
+  });
 }
 
 function setMethod(m, silent) {
@@ -1024,6 +1283,11 @@ async function doSubmit() {
   if (!S.game){toast('เลือกเกมก่อน','err');return;}
   if (!S.drawDate){toast('เลือกงวดก่อน','err');return;}
   var g=GAMES[S.game];
+  if (isSalesClosedForDraw(S.drawDate)) {
+    toast('เลยเวลาปิดขาย (06:30 น. ไทย / 18:30 น. Texas) สำหรับงวดนี้แล้ว — เลือกงวดถัดไป','err');
+    buildDrawDays(g);
+    return;
+  }
   if (S.method==='draw') {
     if (!S.selectedTicketId) { toast('เลือกรูปใบสุ่มก่อน','err'); return; }
     S.sets=1;
@@ -1056,50 +1320,157 @@ async function doSubmit() {
   });
 }
 
-function showConfirm(bookingData) {
-  S.pendingBooking = bookingData;
+function padBallNum(n){ return (n < 10 ? '0' : '') + n; }
 
-  var g = GAMES[bookingData.gameKey];
+function formatBallLine(mainSel, bonusSel) {
+  if (!mainSel || !mainSel.length) return '';
+  var line = mainSel.slice().sort(function(a,b){return a-b;}).map(padBallNum).join(' ');
+  if (bonusSel && bonusSel.length) line += ' + ' + bonusSel.map(padBallNum).join(' ');
+  return line;
+}
+
+function getBookingUnitSell(bookingData) {
   var p = PRICES[bookingData.gameKey] || {};
-  var unitSell = (p.sell_price || 0) + (bookingData.powerPlay ? (p.pp_sell || 0) : 0);
-  var total = unitSell * bookingData.sets;
+  return (p.sell_price || 0) + (bookingData.powerPlay ? (p.pp_sell || 0) : 0);
+}
 
+function buildBookingDetailHtml(bookingData, unitSell) {
+  var g = GAMES[bookingData.gameKey];
   var html = '';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px">';
-  html += '<span style="font-weight:600;color:var(--text)">' + g.emoji + ' ' + g.name + '</span>';
-  html += '<span style="color:var(--text2)">' + bookingData.drawDate + '</span>';
+  html += '<span style="font-weight:600;color:var(--text)">' + g.emoji + ' ' + escAttr(g.name) + '</span>';
+  html += '<span style="color:var(--text2)">' + escAttr(bookingData.drawDate) + '</span>';
   html += '</div>';
 
   bookingData.setsData.forEach(function(sd, i) {
+    var isDraw = sd.mode === 'draw' || bookingData.method === 'draw';
     html += '<div style="margin-bottom:8px;padding:8px;background:var(--white);border-radius:10px;border:1px solid var(--pink3)">';
-    html += '<div style="font-size:11px;color:var(--text2);margin-bottom:5px">' + (sd.mode==='draw'||bookingData.method==='draw'?'ใบสุ่มที่เลือก':'แถวที่ ' + (i+1)) + '</div>';
-    if ((sd.mode==='draw'||bookingData.method==='draw') && sd.ticketImageId) {
+    html += '<div style="font-size:11px;color:var(--text2);margin-bottom:5px">' + (isDraw ? 'จองใบสุ่ม' : 'แถวที่ ' + (i + 1)) + '</div>';
+    if (isDraw && sd.ticketImageId) {
       var poolImg = (_randomPoolCache || {})[sd.ticketImageId];
       if (poolImg) {
         html += '<img src="' + escAttr(poolImg.public_url) + '" style="max-width:120px;border-radius:8px;border:2px solid var(--pink3);margin-bottom:6px">';
       }
       html += '<div style="font-size:11px;color:var(--lav)">🎟️ ' + escAttr(poolImg ? poolImg.file_name : sd.ticketImageId) + '</div>';
     }
-    html += '<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">';
-    sd.mainSel.slice().sort(function(a,b){return a-b;}).forEach(function(n){
-      html += '<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--pink),var(--lav));color:#fff;display:flex;align-items:center;justify-content:center;font-family:Itim,cursive;font-size:12px;font-weight:700">' + (n<10?'0':'') + n + '</div>';
-    });
-    if (sd.bonusSel && sd.bonusSel.length) {
-      html += '<span style="color:var(--pink2);font-size:14px">+</span>';
-      sd.bonusSel.forEach(function(n){
-        html += '<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--peach),#ff6b47);color:#fff;display:flex;align-items:center;justify-content:center;font-family:Itim,cursive;font-size:12px;font-weight:700">' + (n<10?'0':'') + n + '</div>';
-      });
+    if (!isDraw || (sd.mainSel && sd.mainSel.length)) {
+      html += '<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">';
+      if (sd.mainSel && sd.mainSel.length) {
+        sd.mainSel.slice().sort(function(a,b){return a-b;}).forEach(function(n){
+          html += '<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--pink),var(--lav));color:#fff;display:flex;align-items:center;justify-content:center;font-family:Itim,cursive;font-size:12px;font-weight:700">' + padBallNum(n) + '</div>';
+        });
+        if (sd.bonusSel && sd.bonusSel.length) {
+          html += '<span style="color:var(--pink2);font-size:14px">+</span>';
+          sd.bonusSel.forEach(function(n){
+            html += '<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--peach),#ff6b47);color:#fff;display:flex;align-items:center;justify-content:center;font-family:Itim,cursive;font-size:12px;font-weight:700">' + padBallNum(n) + '</div>';
+          });
+        }
+      } else if (!isDraw) {
+        html += '<span style="font-size:11px;color:var(--text2)">สุ่มอัตโนมัติ</span>';
+      }
+      if (getMegaplier(sd) > 1) html += '<span style="font-size:11px;color:var(--lav);font-weight:600;margin-left:6px">Megaplier ' + getMegaplier(sd) + 'X</span>';
+      html += '</div>';
     }
-    if (getMegaplier(sd) > 1) html += '<span style="font-size:11px;color:var(--lav);font-weight:600;margin-left:6px">Megaplier ' + getMegaplier(sd) + 'X</span>';
-    html += '</div></div>';
+    html += '</div>';
   });
 
   html += '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-top:6px">';
   html += '<span>' + bookingData.sets + ' แถว × บาท' + unitSell + '</span>';
   if (bookingData.powerPlay) html += '<span style="color:var(--lav)">⚡ Power Play</span>';
   html += '</div>';
+  return html;
+}
 
-  document.getElementById('confirmDetail').innerHTML = html;
+function buildLineInvoiceText(bookingData, bookingId, total) {
+  var g = GAMES[bookingData.gameKey];
+  var unitSell = getBookingUnitSell(bookingData);
+  var lines = [
+    'Invoice',
+    (bookingData.name || '-').trim(),
+    '',
+    g.emoji + ' ' + g.name,
+    'งวด ' + bookingData.drawDate,
+    ''
+  ];
+
+  bookingData.setsData.forEach(function(sd, i) {
+    var isDraw = sd.mode === 'draw' || bookingData.method === 'draw';
+    if (isDraw) {
+      var poolImg = (_randomPoolCache || {})[sd.ticketImageId];
+      lines.push('จองใบสุ่ม: ' + (poolImg ? poolImg.file_name : (sd.ticketImageId || '-')));
+    } else {
+      lines.push(bookingData.sets > 1 ? 'แถวที่ ' + (i + 1) : 'เลขที่เลือก');
+      var ballLine = formatBallLine(sd.mainSel, sd.bonusSel);
+      lines.push(ballLine || '(สุ่มอัตโนมัติ)');
+    }
+    if (getMegaplier(sd) > 1) lines.push('Megaplier ' + getMegaplier(sd) + 'X');
+    lines.push('');
+  });
+
+  lines.push(bookingData.sets + ' แถว × บาท' + unitSell);
+  if (bookingData.powerPlay) lines.push('Power Play');
+  lines.push('');
+  lines.push('ยอดชำระ: บาท ' + total);
+  if (bookingId) lines.push('รหัสจอง: ' + bookingId);
+  if (bookingData.phone) lines.push('เบอร์/LINE: ' + bookingData.phone);
+  if (bookingData.note) lines.push('หมายเหตุ: ' + bookingData.note);
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function openLineInvoiceChat(text) {
+  var msg = text || '';
+  var oaUrl = 'https://line.me/R/oaMessage/' + LINE_OA_ID + '/?' + encodeURIComponent(msg);
+  window.open(oaUrl, '_blank');
+}
+
+/** Push Invoice ไปแอดมิน LINE (@sabaijapanlotto) ผ่าน Supabase Edge Function */
+async function pushLineBookingToAdmins(invoiceText, bookingId) {
+  if (!LINE_NOTIFY_SECRET) {
+    console.warn('LINE_NOTIFY_SECRET ว่าง — ข้าม push แอดมิน (ตั้งค่า docs/LINE-MESSAGING-API.md)');
+    return { ok: false, skipped: true };
+  }
+  try {
+    var res = await fetch(SUPA_URL + '/functions/v1/line-push-booking', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + SUPA_KEY,
+        'apikey': SUPA_KEY,
+        'x-booking-secret': LINE_NOTIFY_SECRET
+      },
+      body: JSON.stringify({ text: invoiceText, bookingId: bookingId || null })
+    });
+    var data = {};
+    try { data = await res.json(); } catch (e) { /* ignore */ }
+    if (!res.ok || !data.ok) {
+      console.warn('LINE admin push failed', res.status, data);
+      return { ok: false, data: data };
+    }
+    return { ok: true, data: data };
+  } catch (e) {
+    console.warn('LINE admin push error', e);
+    return { ok: false, error: e };
+  }
+}
+
+function showConfirm(bookingData) {
+  if (isSalesClosedForDraw(bookingData.drawDate)) {
+    toast('เลยเวลาปิดขาย (06:30 น. ไทย / 18:30 น. Texas) สำหรับงวดนี้แล้ว — เลือกงวดถัดไป','err');
+    var g0 = GAMES[bookingData.gameKey];
+    if (g0 && !g0.onlineOnly) buildDrawDays(g0);
+    var btn=document.getElementById('btnSub');
+    if(btn){btn.disabled=false;btn.innerHTML='<span>✨</span> บันทึกรายการจอง';}
+    return;
+  }
+  S.pendingBooking = bookingData;
+
+  var unitSell = getBookingUnitSell(bookingData);
+  var total = unitSell * bookingData.sets;
+
+  var nameEl = document.getElementById('confirmCustomerName');
+  if (nameEl) nameEl.textContent = (bookingData.name || '').trim() || '—';
+
+  document.getElementById('confirmDetail').innerHTML = buildBookingDetailHtml(bookingData, unitSell);
   document.getElementById('confirmPrice').textContent = 'บาท ' + total;
   document.getElementById('confirmBg').classList.add('show');
 }
@@ -1116,6 +1487,14 @@ async function doPayment() {
   var bookingData = S.pendingBooking;
   if (!bookingData) return;
   await loadPrices();
+
+  if (isSalesClosedForDraw(bookingData.drawDate)) {
+    toast('เลยเวลาปิดขาย (06:30 น. ไทย / 18:30 น. Texas) สำหรับงวดนี้แล้ว — เลือกงวดถัดไป','err');
+    closeConfirm();
+    var g0 = GAMES[bookingData.gameKey];
+    if (g0 && !g0.onlineOnly) buildDrawDays(g0);
+    return;
+  }
 
   var g = GAMES[bookingData.gameKey];
   var p = PRICES[bookingData.gameKey] || {};
@@ -1156,23 +1535,37 @@ async function doPayment() {
     loadRandomTicketPool();
   }
 
+  var totalSell = unitSell * bookingData.sets;
   S.lastId = id;
-  S.lastTotal = unitSell * bookingData.sets;
+  S.lastTotal = totalSell;
+  S.lastInvoice = {
+    text: buildLineInvoiceText(bookingData, id, totalSell),
+    bookingData: bookingData,
+    id: id,
+    total: totalSell
+  };
 
   document.getElementById('confirmBg').classList.remove('show');
 
-  window.open('https://line.me/ti/p/~@sabaijapanlotto', '_blank');
+  pushLineBookingToAdmins(S.lastInvoice.text, id);
+  openLineInvoiceChat(S.lastInvoice.text);
 
   document.getElementById('mId').textContent = id;
-  document.getElementById('mPrice').textContent = 'บาท ' + (unitSell * bookingData.sets);
+  document.getElementById('mPrice').textContent = 'บาท ' + totalSell;
   document.getElementById('modalBg').classList.add('show');
   resetForm();
 }
 
 function closeModal(){document.getElementById('modalBg').classList.remove('show');var btn=document.getElementById('btnSub');btn.disabled=false;btn.innerHTML='<span>✨</span> บันทึกรายการจอง';}
-function shareLine(){window.open('https://line.me/R/msg/text/?'+encodeURIComponent('จองลอตเตอรี่\nID: '+S.lastId+'\nเกม: '+(GAMES[S.game]||{name:''}).name+'\nยอด: บาท '+S.lastTotal),'_blank');}
+function shareLine(){
+  var text = S.lastInvoice && S.lastInvoice.text
+    ? S.lastInvoice.text
+    : ('Invoice\n\nรหัสจอง: ' + (S.lastId || '-') + '\nยอดชำระ: บาท ' + (S.lastTotal || 0));
+  openLineInvoiceChat(text);
+}
 
 function resetForm(){
+  stopDrawSalesWatcher();
   S.game=null;S.setsData=[{mainSel:[],bonusSel:[]}];S.powerPlay=false;S.sets=1;S.drawDate='';S.pendingBooking=null;S.selectedTicketId=null;
   document.querySelectorAll('.game-card').forEach(function(c){c.classList.remove('sel');});
   ['secDate','secOnline','secMethod','secSets','secPP','secAllSets','secImgs','secInfo','secSubmit'].forEach(function(id){document.getElementById(id).style.display='none';});
@@ -1180,22 +1573,44 @@ function resetForm(){
 }
 
 // ── ADMIN AUTH ──────────────────────────────────
+function openLogin() {
+  _pTarget = 0;
+  _pVal = '';
+  document.getElementById('pinTitle').textContent = 'Log in';
+  document.getElementById('pinIcon').innerHTML = '🔐';
+  document.getElementById('pinErr').textContent = '';
+  updDots();
+  document.getElementById('pinBg').style.display = 'flex';
+}
 function chooseAdmin(n){_pTarget=n;_pVal='';document.getElementById('pinTitle').textContent='Admin '+n;document.getElementById('pinIcon').innerHTML=n===1?'👑':'👔';document.getElementById('pinErr').textContent='';updDots();document.getElementById('pinBg').style.display='flex';}
 function closePin(){document.getElementById('pinBg').style.display='none';_pVal='';}
 function pk(n){if(_pVal.length>=4)return;_pVal+=String(n);updDots();if(_pVal.length===4)setTimeout(checkPin,160);}
 function pDel(){_pVal=_pVal.slice(0,-1);updDots();document.getElementById('pinErr').textContent='';}
 function updDots(){for(var i=0;i<4;i++){var d=document.getElementById('pd'+i);d.classList.toggle('filled',i<_pVal.length);d.classList.remove('err');}}
+function finishAdminLogin(role) {
+  document.getElementById('pinBg').style.display = 'none';
+  ADMIN.role = role;
+  document.getElementById('adminNav').classList.add('show');
+  if (role === 1) document.getElementById('adminBar').classList.add('show');
+  var loginBtn = document.getElementById('headerLoginBtn');
+  if (loginBtn) loginBtn.style.display = 'none';
+  updateAdminHeader();
+  startAdminClock();
+  initListFilterUI();
+  switchTab('list');
+  loadStats();
+  toast('เข้าสู่ระบบแล้ว 🌸', 'ok');
+}
 function checkPin(){
-  if (_pVal===PINS[_pTarget]){
-    document.getElementById('pinBg').style.display='none';
-    ADMIN.role=_pTarget;
-    document.getElementById('adminNav').classList.add('show');
-    if (_pTarget===1) document.getElementById('adminBar').classList.add('show');
-    updateAdminHeader();
-    startAdminClock();
-    initListFilterUI();
-    switchTab('list'); loadStats();
-    toast('Welcome Admin '+_pTarget+' 🌸','ok');
+  var role = 0;
+  if (_pTarget) {
+    if (_pVal === PINS[_pTarget]) role = _pTarget;
+  } else {
+    if (_pVal === PINS[1]) role = 1;
+    else if (_pVal === PINS[2]) role = 2;
+  }
+  if (role) {
+    finishAdminLogin(role);
   } else {
     for(var i=0;i<4;i++) document.getElementById('pd'+i).classList.add('err');
     document.getElementById('pinErr').textContent='PIN ไม่ถูก';
@@ -1205,6 +1620,8 @@ function checkPin(){
 function adminLogout(){
   ADMIN.role=0;
   stopAdminClock();
+  var loginBtn = document.getElementById('headerLoginBtn');
+  if (loginBtn) loginBtn.style.display = '';
   document.getElementById('adminWhoLabel').innerHTML='';
   LIST_FILTER = { gameKey: '', drawDate: '' };
   document.getElementById('listDateRow').classList.remove('show');
@@ -1375,8 +1792,10 @@ function renderList(list){
       html+='</div>';
       html+='<div id="img-'+b.id+'"></div>';
     } else {
-      html+='<div class="bk-top"><div class="bk-headline">'+escAttr((b.game_name||'-')+' - '+(b.customer_name||'-')+' - '+(b.draw_date||'-')+' - '+(b.sets_count||1)+' แถว')+'</div></div>';
+      html+='<div class="bk-top"><div class="bk-headline">'+escAttr((b.game_name||'-')+' - '+(b.customer_name||'-')+' - '+(b.draw_date||'-')+' - '+(b.sets_count||1)+' แถว')+'</div>';
+      html+='<span class="img-status-tag none" id="imgst-'+escAttr(b.id)+'">⏳ ตรวจรูป...</span></div>';
       html+='<div class="bk-balls">'+balls+'</div>';
+      html+='<div id="img-'+escAttr(b.id)+'" class="bk-img-block"></div>';
     }
     html+='</div>';
   });
@@ -1385,7 +1804,84 @@ function renderList(list){
     visible.forEach(function(b) {
       loadBookingImages(b.id, b.game_key, b.draw_date, 'img-' + b.id);
     });
+  } else if (ADMIN.role === 2 && LIST_FILTER.gameKey && LIST_FILTER.drawDate) {
+    loadListImageStatusesForAdmin2(visible, LIST_FILTER.gameKey, LIST_FILTER.drawDate);
   }
+}
+
+function getBookingImageStatus(images, booking) {
+  var sets = booking.sets_count || 1;
+  if (!images || !images.length) {
+    return { state: 'none', text: '⏳ ยังไม่มีรูป' };
+  }
+  var bySet = {};
+  var hasAll = false;
+  images.forEach(function(im) {
+    if (im.set_index != null) bySet[im.set_index] = true;
+    else hasAll = true;
+  });
+  if (hasAll || Object.keys(bySet).length >= sets) {
+    return { state: 'done', text: '🖼 อัพรูปแล้ว' + (images.length > 1 ? ' (' + images.length + ' ใบ)' : '') };
+  }
+  var linked = 0;
+  for (var i = 0; i < sets; i++) if (bySet[i]) linked++;
+  if (linked > 0) {
+    return { state: 'partial', text: '🖼 ผูกรูปแล้ว ' + linked + '/' + sets + ' แถว' };
+  }
+  return { state: 'none', text: '⏳ ยังไม่มีรูป' };
+}
+
+async function loadListImageStatusesForAdmin2(bookings, gameKey, drawDate) {
+  if (!bookings || !bookings.length) return;
+  var ids = bookings.map(function(b) { return b.id; }).filter(Boolean);
+  if (!ids.length) return;
+
+  var { data: images, error } = await sb.from('lottery_images')
+    .select('booking_id,set_index,file_name,public_url')
+    .eq('game_key', gameKey)
+    .eq('draw_date', drawDate)
+    .in('booking_id', ids);
+
+  if (error) {
+    console.warn('loadListImageStatuses', error);
+    return;
+  }
+
+  var byBooking = {};
+  (images || []).forEach(function(im) {
+    if (!im.booking_id) return;
+    if (!byBooking[im.booking_id]) byBooking[im.booking_id] = [];
+    byBooking[im.booking_id].push(im);
+  });
+
+  bookings.forEach(function(b) {
+    var tag = document.getElementById('imgst-' + b.id);
+    var block = document.getElementById('img-' + b.id);
+    var imgs = sortTicketImagesByName(byBooking[b.id] || []);
+    var st = getBookingImageStatus(imgs, b);
+
+    if (tag) {
+      tag.className = 'img-status-tag ' + st.state;
+      tag.textContent = st.text;
+    }
+
+    if (!block) return;
+    if (!imgs.length) {
+      block.innerHTML = '<div style="font-size:11px;color:var(--text3);margin-top:6px">ยังไม่ผูกรูป — อัพโหลดที่แท็บราคา</div>';
+      return;
+    }
+
+    var html = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:flex-end">';
+    imgs.forEach(function(img) {
+      var row = img.set_index != null ? ' แถว' + (img.set_index + 1) : '';
+      html += '<div style="text-align:center">';
+      html += '<img src="' + escAttr(img.public_url) + '" alt="" style="width:52px;height:70px;object-fit:cover;border-radius:6px;border:2px solid var(--mint)">';
+      html += '<div style="font-size:9px;color:var(--mint);font-weight:600;margin-top:2px">' + escAttr(img.file_name) + row + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+    block.innerHTML = html;
+  });
 }
 
 async function updStatus(id, status) {
@@ -1416,6 +1912,7 @@ async function updStatus(id, status) {
     filterList();
     loadStats();
     refreshAllBookingImages();
+    if (ADMIN.role === 2) loadTicketGallery();
   } else {
     toast('เกิดข้อผิดพลาด', 'err');
   }
@@ -1504,8 +2001,9 @@ async function loadPricePanel(){
     html+='<button class="btn-save-price" onclick="runAutoMatchAll()" style="margin-top:8px;background:linear-gradient(135deg,var(--lav),var(--sky))">🔗 ผูกอัตโนมัติทั้งหมด (เลือกเลข)</button>';
     html+='<div class="section-hd" style="margin-top:14px">🖼️ รูปที่อัพโหลดแล้ว</div>';
     html+='<div id="assignSummary" style="font-size:11px;color:var(--text2);margin-bottom:8px"></div>';
-    html+='<div id="uploadModeHint" style="font-size:11px;color:var(--text2);margin-bottom:6px">โหมดเลือกเลข: อ่านเลขจากรูป → จับคู่ → ตั้งชื่อไฟล์ตามชื่อลูกค้า · ใบสุ่ม: ตั้งชื่อตามที่เห็นในรูป (เช่น M1)</div>';
+    html+='<div id="uploadModeHint" style="font-size:11px;color:var(--text2);margin-bottom:6px">โหมดเลือกเลข: OCR จับคู่เลข → ตั้งชื่อตามชื่อลูกค้า · ใบสุ่ม: P/M/T อัตโนมัติ (P1, M1, T1…)</div>';
     html+='<div id="galleryArea"></div>';
+    html+='<input type="file" id="ticketReplaceInput" accept="image/*" style="display:none">';
     html+='</div>';
 
     html+='<div class="section-hd">💸 ตั้งราคาทุน (บาท)</div>';
@@ -1528,6 +2026,14 @@ async function loadPricePanel(){
   if (!isA1) {
     setUploadMode('auto');
     loadTicketGallery();
+    var repInp = document.getElementById('ticketReplaceInput');
+    if (repInp && !repInp._bound) {
+      repInp._bound = true;
+      repInp.addEventListener('change', function() {
+        handleTicketReplaceFile(this.files);
+        this.value = '';
+      });
+    }
   }
 }
 
@@ -1579,7 +2085,7 @@ function setUploadMode(mode) {
   if (hint) {
     hint.textContent = _uploadMode === 'auto'
       ? 'โหมดเลือกเลข: OCR จับคู่เลขกับรายการจอง แล้วตั้งชื่อไฟล์ตามชื่อลูกค้า'
-      : 'โหมดใบสุ่ม: OCR อ่านชื่อบนใบ (เช่น M1) เป็นชื่อไฟล์ · เลือกผูกรายการเองได้';
+      : 'โหมดใบสุ่ม: ตั้งชื่ออัตโนมัติ P/M/T ตามเกม (P1, M2, T3…) · เลือกผูกรายการเองได้';
   }
   loadTicketGallery();
 }
@@ -1955,27 +2461,38 @@ async function uploadTickets() {
   var uploaded = 0;
   var linkedN = 0;
 
+  if (_uploadMode === 'random') {
+    var { data: existingImgs } = await sb.from('lottery_images')
+      .select('file_name')
+      .eq('game_key', gameKey)
+      .eq('draw_date', drawDate);
+    var prefix0 = getTicketPrefix(gameKey);
+    (existingImgs || []).forEach(function(row) {
+      var m = String(row.file_name || '').match(new RegExp('^' + prefix0 + '(\\d+)$', 'i'));
+      if (m) usedNames[prefix0 + m[1]] = true;
+    });
+  }
+
   for (var i = 0; i < _ticketFiles.length; i++) {
     var file = _ticketFiles[i];
-    progress.textContent = 'อ่านรูป & อัพโหลด ' + (i + 1) + '/' + _ticketFiles.length + '...';
-
     var ocrText = '';
-    try {
-      ocrText = await ocrImageFile(file);
-    } catch (e) {
-      console.warn('OCR failed', e);
-    }
-
-    var ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-    var fileName = 'tmp-' + Date.now() + '-' + i;
     var bookingId = null;
     var setIndex = null;
     var sig = null;
+    var fileName = 'tmp-' + Date.now() + '-' + i;
 
     if (_uploadMode === 'random') {
-      fileName = parseTicketLabelFromOcr(ocrText, gameKey) || parseTicketLabelFromOcr(file.name, gameKey) || ('scan-' + (i + 1));
-      fileName = uniqueUsedName(safeTicketFileName(fileName), usedNames);
+      progress.textContent = 'อัพโหลดใบสุ่ม ' + (i + 1) + '/' + _ticketFiles.length + '...';
+      var n = nextPoolFileIndex(gameKey, drawDate, usedNames);
+      fileName = getTicketPrefix(gameKey) + n;
+      usedNames[fileName] = true;
     } else {
+      progress.textContent = 'อ่านรูป & อัพโหลด ' + (i + 1) + '/' + _ticketFiles.length + '...';
+      try {
+        ocrText = await ocrImageFile(file);
+      } catch (e) {
+        console.warn('OCR failed', e);
+      }
       var match = findMatchFromOcr(ocrText, gameKey, bookings || [], taken);
       if (match) {
         bookingId = match.bookingId;
@@ -1989,6 +2506,8 @@ async function uploadTickets() {
         fileName = uniqueUsedName('unmatched-' + (i + 1), usedNames);
       }
     }
+
+    var ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
 
     var storagePath = drawDate + '/' + gameKey + '/' + fileName + '.' + ext;
     var { error: storageError } = await sb.storage
@@ -2067,18 +2586,29 @@ async function loadTicketGallery() {
   var html = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:8px">';
   images.forEach(function(img) {
     var linked = !!img.booking_id;
-    var border = linked ? '2px solid var(--mint)' : '1.5px solid var(--pink3)';
-    html += '<div style="border-radius:10px;padding:8px;background:var(--white);border:' + border + '">';
-    html += '<div style="position:relative;aspect-ratio:3/4;border-radius:8px;overflow:hidden;margin-bottom:6px">';
-    html += '<img src="' + escAttr(img.public_url) + '" style="width:100%;height:100%;object-fit:cover">';
-    html += '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(255,139,171,.9);color:#fff;font-size:10px;text-align:center;padding:3px;font-family:Itim,cursive">' + escAttr(img.file_name) + (linked ? ' ✓' : '') + '</div>';
-    html += '<button type="button" data-id="' + escAttr(img.id) + '" onclick="deleteTicket(this.dataset.id)" style="position:absolute;top:4px;right:4px;background:#ef4444;border:none;border-radius:50%;width:20px;height:20px;color:#fff;font-size:11px;cursor:pointer">✕</button>';
+    var border = linked ? '2px solid var(--mint)' : '2px solid var(--pink3)';
+    html += '<div style="position:relative;border-radius:10px;overflow:hidden;border:' + border + ';background:var(--cream)">';
+    html += '<div style="aspect-ratio:3/4;overflow:hidden">';
+    html += '<img src="' + escAttr(img.public_url) + '" style="width:100%;height:100%;object-fit:cover" alt="">';
+    html += '</div>';
+    html += '<div style="padding:6px 8px;background:var(--white)">';
+    html += '<div style="display:flex;align-items:center;gap:4px">';
+    html += '<input type="text" id="name_' + String(img.id).replace(/"/g, '') + '" value="' + escAttr(img.file_name) + '" style="flex:1;border:1.5px solid var(--pink3);border-radius:6px;padding:3px 6px;font-family:Itim,cursive;font-size:12px;outline:none;background:var(--cream);min-width:0" onkeydown="if(event.key===\'Enter\')renameTicket(\'' + escAttr(img.id) + '\')">';
+    html += '<button type="button" onclick="renameTicket(\'' + escAttr(img.id) + '\')" style="background:var(--pink);border:none;border-radius:6px;color:#fff;padding:3px 8px;font-size:11px;cursor:pointer;white-space:nowrap">✓</button>';
     html += '</div>';
     if (linked) {
-      var bk = bookings.find(function(b) { return b.id === img.booking_id; });
-      var rowLbl = img.set_index != null ? ' แถว ' + (img.set_index + 1) : '';
-      html += '<div style="font-size:10px;color:var(--mint);margin-top:4px">✓ ' + escAttr((bk ? bk.customer_name : img.booking_id) + rowLbl) + '</div>';
-      if (img.number_signature) html += '<div style="font-size:9px;color:var(--text3)">' + escAttr(img.number_signature) + '</div>';
+      var bk0 = bookings.find(function(b) { return b.id === img.booking_id; });
+      var rowLbl0 = img.set_index != null ? ' แถว ' + (img.set_index + 1) : '';
+      html += '<div style="font-size:10px;color:var(--mint);margin-top:4px">✓ ' + escAttr((bk0 ? bk0.customer_name : img.booking_id) + rowLbl0) + '</div>';
+    }
+    html += '</div>';
+    html += '<button type="button" onclick="confirmDeleteTicket(\'' + escAttr(img.id) + '\')" style="position:absolute;top:4px;right:4px;background:#ef4444;border:none;border-radius:50%;width:20px;height:20px;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>';
+    html += '<div style="padding:8px;background:var(--white);border-top:1px solid var(--pink3)">';
+    html += '<div class="ticket-gallery-actions" style="margin-bottom:6px">';
+    html += '<button type="button" class="tg-btn" data-act="replace" data-id="' + escAttr(img.id) + '">🖼️ แก้ไขรูป</button>';
+    html += '</div>';
+    if (linked && img.number_signature) {
+      html += '<div style="font-size:9px;color:var(--text3);margin-bottom:4px">' + escAttr(img.number_signature) + '</div>';
     }
     var showAssign = !linked || _uploadMode === 'random';
     if (showAssign && _uploadMode === 'random') {
@@ -2125,10 +2655,17 @@ async function loadTicketGallery() {
         html += '<button type="button" class="bk-btn ok" style="margin-top:6px;width:100%" onclick="runAutoMatchAll()">🔗 ผูกอัตโนมัติทั้งหมด</button>';
       }
     }
-    html += '</div>';
+    html += '</div></div>';
   });
   html += '</div>';
   area.innerHTML = html;
+  area.onclick = function(e) {
+    var btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    var id = btn.getAttribute('data-id');
+    var act = btn.getAttribute('data-act');
+    if (act === 'replace') startReplaceTicket(id);
+  };
 }
 
 async function retryAutoMatchOne(imageId) {
@@ -2168,22 +2705,191 @@ async function assignTicket(imageId, value) {
 }
 
 function refreshAllBookingImages() {
-  if (ADMIN.role !== 1) return;
-  document.querySelectorAll('[id^="img-"]').forEach(function(el) {
-    var bookingId = el.id.slice(4);
-    var b = _bks.find(function(x) { return x.id === bookingId; });
-    if (b) loadBookingImages(b.id, b.game_key, b.draw_date, el.id);
+  if (ADMIN.role === 1 && _bks && _bks.length) {
+    document.querySelectorAll('[id^="img-"]').forEach(function(el) {
+      if (el.id.indexOf('imgst-') === 0) return;
+      var bookingId = el.id.slice(4);
+      var b = _bks.find(function(x) { return x.id === bookingId; });
+      if (b) loadBookingImages(b.id, b.game_key, b.draw_date, el.id);
+    });
+    return;
+  }
+  if (ADMIN.role === 2 && LIST_FILTER.gameKey && LIST_FILTER.drawDate && _bks && _bks.length) {
+    var visible = _bks.filter(function(b) { return b.status !== 'cancelled'; });
+    loadListImageStatusesForAdmin2(visible, LIST_FILTER.gameKey, LIST_FILTER.drawDate);
+  }
+}
+
+function confirmDeleteTicket(id) {
+  if (!id) return;
+  sb.from('lottery_images').select('file_name,booking_id').eq('id', id).maybeSingle().then(function(res) {
+    var row = res.data;
+    var msg = 'ลบรูป「' + (row && row.file_name ? row.file_name : id) + '」?';
+    if (row && row.booking_id) msg += '\n\nรูปนี้ผูกกับรายการจองแล้ว — ลบแล้วรายการนั้นจะไม่มีรูป';
+    if (confirm(msg)) deleteTicket(id);
   });
 }
 
 async function deleteTicket(id) {
-  var {data} = await sb.from('lottery_images').select('storage_path').eq('id', id).maybeSingle();
-  if (data && data.storage_path) {
-    await sb.storage.from('lottery-tickets').remove([data.storage_path]);
+  if (!id) return;
+  var { data, error: selErr } = await sb.from('lottery_images').select('storage_path,file_name').eq('id', id).maybeSingle();
+  if (selErr) { toast('ลบไม่สำเร็จ: ' + dbErrMsg(selErr), 'err'); return; }
+  if (!data) { toast('ไม่พบรูปนี้', 'err'); return; }
+
+  if (data.storage_path) {
+    var { error: stErr } = await sb.storage.from('lottery-tickets').remove([data.storage_path]);
+    if (stErr) console.warn('storage remove:', stErr);
   }
-  await sb.from('lottery_images').delete().eq('id', id);
-  toast('ลบรูปแล้ว', 'ok');
+
+  var { error: delErr } = await sb.from('lottery_images').delete().eq('id', id);
+  if (delErr) {
+    toast('ลบไม่สำเร็จ: ' + dbErrMsg(delErr) + ' — ถ้าเป็น 403 ให้รัน scripts/grant-lottery-images-delete.sql ใน Supabase', 'err');
+    return;
+  }
+  toast('ลบรูปแล้ว 🌸', 'ok');
   loadTicketGallery();
+  refreshAllBookingImages();
+}
+
+function openTicketRenameModal(imageId, currentName) {
+  window._ticketRenameId = imageId;
+  var inp = document.getElementById('ticketRenameInput');
+  if (inp) inp.value = currentName || '';
+  var modal = document.getElementById('ticketRenameBg');
+  if (!modal) return;
+  if (modal.parentNode !== document.body) document.body.appendChild(modal);
+  modal.classList.add('show');
+  if (inp) setTimeout(function() { inp.focus(); inp.select(); }, 100);
+}
+
+function closeTicketRenameModal() {
+  document.getElementById('ticketRenameBg').classList.remove('show');
+  window._ticketRenameId = null;
+}
+
+async function applyTicketRename(id, rawName, feedbackInput) {
+  var newName = safeTicketFileName(String(rawName || '').replace(/\.[a-z0-9]+$/i, ''));
+  if (!newName) { toast('ชื่อห้ามว่าง', 'err'); return false; }
+
+  var { data: row, error: selErr } = await sb.from('lottery_images').select('*').eq('id', id).maybeSingle();
+  if (selErr || !row) { toast('ไม่พบรูป', 'err'); return false; }
+
+  var { data: dup } = await sb.from('lottery_images').select('id')
+    .eq('game_key', row.game_key).eq('draw_date', row.draw_date).eq('file_name', newName).neq('id', id).maybeSingle();
+  if (dup) { toast('ชื่อ「' + newName + '」มีอยู่แล้วในงวดนี้', 'err'); return false; }
+
+  var ext = '.jpg';
+  if (row.storage_path && row.storage_path.indexOf('.') > -1) {
+    ext = row.storage_path.slice(row.storage_path.lastIndexOf('.'));
+  }
+  var newPath = row.draw_date + '/' + row.game_key + '/' + newName + ext;
+  var oldPath = row.storage_path;
+
+  if (newPath !== oldPath) {
+    if (oldPath) {
+      var { error: moveErr } = await sb.storage.from('lottery-tickets').move(oldPath, newPath);
+      if (moveErr) {
+        var blobRes = await fetch(row.public_url);
+        if (!blobRes.ok) {
+          toast('ย้ายไฟล์ไม่สำเร็จ: ' + dbErrMsg(moveErr), 'err');
+          return false;
+        }
+        var blob = await blobRes.blob();
+        var { error: upErr } = await sb.storage.from('lottery-tickets').upload(newPath, blob, { upsert: true });
+        if (upErr) { toast('อัพโหลดชื่อใหม่ไม่สำเร็จ: ' + upErr.message, 'err'); return false; }
+        await sb.storage.from('lottery-tickets').remove([oldPath]);
+      }
+    } else {
+      toast('ไม่พบ path ใน storage', 'err');
+      return false;
+    }
+  }
+
+  var urlData = sb.storage.from('lottery-tickets').getPublicUrl(newPath);
+  var publicUrl = urlData.publicUrl + (urlData.publicUrl.indexOf('?') > -1 ? '&' : '?') + 'v=' + Date.now();
+
+  var { error: updErr } = await sb.from('lottery_images').update({
+    file_name: newName,
+    storage_path: newPath,
+    public_url: publicUrl
+  }).eq('id', id);
+
+  if (updErr) { toast('เปลี่ยนชื่อไม่สำเร็จ: ' + dbErrMsg(updErr), 'err'); return false; }
+
+  if (feedbackInput) {
+    feedbackInput.style.borderColor = 'var(--mint)';
+    setTimeout(function() { feedbackInput.style.borderColor = 'var(--pink3)'; }, 1500);
+  }
+  toast('เปลี่ยนชื่อเป็น「' + newName + '」แล้ว 🌸', 'ok');
+  return true;
+}
+
+async function renameTicket(id) {
+  var input = document.getElementById('name_' + id);
+  if (!input) return;
+  var ok = await applyTicketRename(id, input.value.trim(), input);
+  if (ok) {
+    loadTicketGallery();
+    refreshAllBookingImages();
+  }
+}
+
+async function saveTicketRename() {
+  var id = window._ticketRenameId;
+  if (!id) return;
+  var inp = document.getElementById('ticketRenameInput');
+  var ok = await applyTicketRename(id, inp ? inp.value.trim() : '', inp);
+  if (ok) {
+    closeTicketRenameModal();
+    loadTicketGallery();
+    refreshAllBookingImages();
+  }
+}
+
+function startReplaceTicket(imageId) {
+  window._replaceTicketImageId = imageId;
+  var inp = document.getElementById('ticketReplaceInput');
+  if (inp) inp.click();
+  else toast('ไม่พบตัวเลือกไฟล์', 'err');
+}
+
+async function handleTicketReplaceFile(files) {
+  var id = window._replaceTicketImageId;
+  window._replaceTicketImageId = null;
+  if (!id || !files || !files.length) return;
+  var file = files[0];
+
+  var { data: row, error: selErr } = await sb.from('lottery_images').select('*').eq('id', id).maybeSingle();
+  if (selErr || !row) { toast('ไม่พบรูป', 'err'); return; }
+
+  var ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+  var oldExt = '.jpg';
+  if (row.storage_path && row.storage_path.indexOf('.') > -1) {
+    oldExt = row.storage_path.slice(row.storage_path.lastIndexOf('.'));
+  }
+  var storagePath = row.draw_date + '/' + row.game_key + '/' + row.file_name + '.' + ext;
+  var oldPath = row.storage_path;
+
+  var { error: upErr } = await sb.storage.from('lottery-tickets').upload(storagePath, file, { upsert: true, contentType: file.type || 'image/jpeg' });
+  if (upErr) { toast('แก้รูปไม่สำเร็จ: ' + upErr.message, 'err'); return; }
+
+  if (oldPath && oldPath !== storagePath) {
+    await sb.storage.from('lottery-tickets').remove([oldPath]);
+  }
+
+  var urlData = sb.storage.from('lottery-tickets').getPublicUrl(storagePath);
+  var publicUrl = urlData.publicUrl + (urlData.publicUrl.indexOf('?') > -1 ? '&' : '?') + 'v=' + Date.now();
+
+  var { error: updErr } = await sb.from('lottery_images').update({
+    storage_path: storagePath,
+    public_url: publicUrl,
+    source_filename: file.name
+  }).eq('id', id);
+
+  if (updErr) { toast('บันทึกรูปไม่สำเร็จ: ' + dbErrMsg(updErr), 'err'); return; }
+  toast('แก้ไขรูปแล้ว 🌸', 'ok');
+  loadTicketGallery();
+  refreshAllBookingImages();
 }
 
 function downloadImageUrl(url, filename) {
@@ -2335,24 +3041,10 @@ function openTicketModal(bookingId, startIndex) {
     });
   }
   var actions = document.getElementById('ticketModalActions');
-  actions.innerHTML = '';
-  var btnOne = document.createElement('button');
-  btnOne.type = 'button';
-  btnOne.className = 'btn-modal';
-  btnOne.textContent = '⬇ ดาวน์โหลดรูปนี้';
-  btnOne.onclick = function() {
-    var ext = '.jpg';
-    if (img.storage_path && img.storage_path.indexOf('.') > -1) ext = img.storage_path.slice(img.storage_path.lastIndexOf('.'));
-    downloadImageBlob(img.public_url, (img.file_name || 'ticket') + ext);
-  };
-  actions.appendChild(btnOne);
-  var btnAll = document.createElement('button');
-  btnAll.type = 'button';
-  btnAll.className = 'btn-modal';
-  btnAll.style.background = 'linear-gradient(135deg,var(--lav),var(--sky))';
-  btnAll.textContent = '⬇ ดาวน์โหลดทั้งหมด (' + imgs.length + ')';
-  btnAll.onclick = function() { downloadAllBookingImages(bookingId); };
-  actions.appendChild(btnAll);
+  if (actions) {
+    actions.innerHTML = '';
+    actions.style.display = 'none';
+  }
   document.getElementById('ticketModalBg').classList.add('show');
 }
 
@@ -2379,7 +3071,6 @@ async function loadBookingImages(bookingId, gameKey, drawDate, containerId) {
   if (data.length) {
     var html = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px">';
     html += '<button type="button" class="bk-btn ok" onclick="openTicketModal(\'' + escAttr(bookingId) + '\',0)">🖼 ดูรูป (' + data.length + ')</button>';
-    html += '<button type="button" class="bk-btn ok" style="background:var(--lav);color:#fff" onclick="downloadAllBookingImages(\'' + escAttr(bookingId) + '\')">⬇ ทั้งหมด</button>';
     html += '</div>';
     html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">';
     data.forEach(function(img, i) {
