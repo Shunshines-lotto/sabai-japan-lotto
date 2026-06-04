@@ -995,6 +995,37 @@ function parseMainNumbers(raw) {
   return Array.isArray(nums) ? nums : [];
 }
 
+/** เลขหลัก/โบนัสสำหรับแสดงผล — ตามกติกาเกม (Powerball 5+1, Mega 5+1, TX Lotto 6, ฯลฯ) */
+function getDisplayResultNumbers(gameKey, result) {
+  var g = GAMES[gameKey];
+  if (!g || !result) return { main: [], bonus: 0 };
+  var main = parseMainNumbers(result.main_numbers).slice(0, g.mainCount);
+  var bonus = 0;
+  if (g.bonusCount > 0) {
+    bonus = parseInt(result.bonus_number, 10);
+    if (isNaN(bonus)) bonus = 0;
+  }
+  return { main: main, bonus: bonus };
+}
+
+function renderResultBallsRowHtml(gameKey, result) {
+  var g = GAMES[gameKey];
+  if (!g || !result) return '';
+  var dr = getDisplayResultNumbers(gameKey, result);
+  if (!dr.main.length) return '<div style="font-size:11px;color:var(--text3)">ยังไม่มีผล</div>';
+  var html = '<div class="result-balls-row">';
+  dr.main.forEach(function(n) {
+    var num = parseInt(n, 10);
+    if (isNaN(num)) return;
+    html += '<div class="result-ball">' + (num < 10 ? '0' : '') + num + '</div>';
+  });
+  if (g.bonusCount > 0 && dr.bonus) {
+    html += '<div class="result-ball bonus-ball">' + (dr.bonus < 10 ? '0' : '') + dr.bonus + '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
 /** แสดงแจ็คพอตเป็นสกุลเงิน USD (ค่าในฐานข้อมูล = ดอลลาร์เต็ม เช่น 156000000) */
 function formatJackpotUsd(usd) {
   var n = parseFloat(usd);
@@ -1091,20 +1122,7 @@ async function buildGameCards() {
     html += '<div class="game-card-section">';
     html += '<div class="game-card-section-label">📅 ผลล่าสุด</div>';
     if (result) {
-      var nums = parseMainNumbers(result.main_numbers);
-      html += '<div class="result-balls-row">';
-      nums.slice(0, 6).forEach(function(n) {
-        var num = parseInt(n, 10);
-        if (isNaN(num)) return;
-        html += '<div class="result-ball">' + (num < 10 ? '0' : '') + num + '</div>';
-      });
-      if (result.bonus_number) {
-        var bn = parseInt(result.bonus_number, 10);
-        if (!isNaN(bn)) {
-          html += '<div class="result-ball bonus-ball">' + (bn < 10 ? '0' : '') + bn + '</div>';
-        }
-      }
-      html += '</div>';
+      html += renderResultBallsRowHtml(g.key, result);
       html += '<div style="font-size:9px;color:var(--text3);margin-top:3px">' + escAttr(result.draw_date || '') + '</div>';
     } else {
       html += '<div style="font-size:11px;color:var(--text3)">ยังไม่มีผล</div>';
@@ -3405,15 +3423,15 @@ function renderSavedResultSummary(data, game) {
   var box = document.getElementById('savedResultSummary');
   if (!box || !data) return;
   var g = GAMES[game] || {};
-  var main = parseMainNumbers(data.main_numbers);
+  var dr = getDisplayResultNumbers(game, data);
   var j = formatJackpotUsd(data.jackpot_usd);
   var html = '<div style="font-size:11px;color:var(--text2);margin-bottom:10px;padding:8px 10px;background:var(--white);border-radius:8px;border:1px dashed var(--pink3)">';
   html += '📋 ผลที่บันทึกแล้วในงวดนี้ · ';
-  main.forEach(function(n, i) {
+  dr.main.forEach(function(n, i) {
     if (i) html += ', ';
     html += n;
   });
-  if (data.bonus_number && g.bonusCount) html += ' + ' + g.bonusLabel + ' ' + data.bonus_number;
+  if (g.bonusCount && dr.bonus) html += ' + ' + g.bonusLabel + ' ' + dr.bonus;
   html += '<br>แจ็คพอต: <span style="color:var(--peach);font-weight:600">' + escAttr(j || '—') + '</span>';
   html += '</div>';
   box.innerHTML = html;
@@ -3455,7 +3473,11 @@ async function saveManualResult() {
   var jackpot = jackpotInput ? parseJackpotUsdInput(jackpotInput.value) : 0;
   var g = GAMES[game];
   if (g && g.mainCount && main.length !== g.mainCount) {
-    toast('เลขหลักต้องครบ ' + g.mainCount + ' ตัว', 'err');
+    toast('เลขหลักต้องครบ ' + g.mainCount + ' ตัว (ไม่เกิน)', 'err');
+    return;
+  }
+  if (g && g.bonusCount > 0 && !bonus) {
+    toast('กรอก ' + (g.bonusLabel || 'โบนัส') + ' ด้วยครับ', 'err');
     return;
   }
   if (['powerball', 'mega'].indexOf(game) > -1 && jackpot <= 0) {
@@ -3467,6 +3489,11 @@ async function saveManualResult() {
 
 async function saveResult(game, date, main, bonus, jackpot, source) {
   if (!main.length) { toast('กรอกเลขก่อนครับ', 'err'); return; }
+  var g = GAMES[game];
+  if (g) {
+    if (main.length > g.mainCount) main = main.slice(0, g.mainCount);
+    if (g.bonusCount < 1) bonus = 0;
+  }
   var id = game + '-' + date;
   var {error} = await sb.from('lottery_results').upsert({
     id: id,
