@@ -238,9 +238,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .pin-del{background:var(--lav3);border-color:var(--lav2);color:var(--lav);font-size:15px}
 .pin-cancel{background:#ffe4e6;border-color:#ffb3c6;color:#be123c;font-size:15px}
 
-.online-card{background:linear-gradient(135deg,var(--mint),#a7f3d0);border-radius:var(--r);padding:20px;text-align:center;margin-top:7px}
-.online-card p{color:#065f46;font-size:13px;margin-bottom:13px}
-.btn-goto{padding:10px 24px;background:#065f46;border:none;border-radius:var(--r3);color:var(--white);font-family:'Mitr',sans-serif;font-size:13px;cursor:pointer}
 .empty{text-align:center;padding:40px 16px;color:var(--text2)}
 .search-bar{width:100%;background:var(--white);border:2px solid var(--pink3);border-radius:var(--r3);padding:8px 13px;color:var(--text);font-family:'Noto Sans Thai','Mitr',sans-serif;font-size:13px;outline:none;margin-bottom:11px;transition:border-color .2s}
 .search-bar:focus{border-color:var(--pink)}
@@ -436,14 +433,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <div class="draw-tz-note">วันที่งวด = <b>เวลา Texas (Central)</b> · ปิดรับจอง <b>06:30 น. (ไทย)</b> = <b>18:30 น. (Texas)</b> ของวันงวด — เลยเวลาแสดงงวดถัดไป</div>
     <div class="draw-tz-note" id="drawSalesNote" style="margin-top:4px;color:var(--lav)"></div>
     <div class="draw-days" id="drawDays"></div>
-  </div>
-  <div id="secOnline" style="display:none">
-    <div class="sbox"><div class="stitle">🌐 TX Lotto</div>
-      <div class="online-card"><div style="font-size:40px;margin-bottom:7px">🖥</div>
-        <p>TX Lotto ซื้อผ่านเว็บไซต์ Texas</p>
-        <button class="btn-goto" onclick="window.open('https://www.txlottery.org','_blank')">ไปเว็บ</button>
-      </div>
-    </div>
   </div>
   <div class="sbox" id="secMethod" style="display:none">
     <div class="stitle">📄 วิธีเลือกเลข</div>
@@ -770,7 +759,7 @@ const GAMES = {
   powerball:    {key:'powerball',    name:'Power Ball',     emoji:'🔴', color:'#ff6b8a', mainCount:5,  mainMax:69, bonusCount:1, bonusMax:26, bonusLabel:'Power Ball', hasPP:true,  drawDays:['MO','WE','SA']},
   mega:         {key:'mega',         name:'Mega Millions',  emoji:'🟡', color:'#f9a825', mainCount:5,  mainMax:70, bonusCount:1, bonusMax:25, bonusLabel:'Mega Ball',   hasPP:false, drawDays:['TU','FR']},
   txtwostep:    {key:'txtwostep',    name:'TX Two Step',    emoji:'🔵', color:'#42a5f5', mainCount:4,  mainMax:35, bonusCount:1, bonusMax:35, bonusLabel:'Bonus Ball',  hasPP:false, drawDays:['MO','TH']},
-  txlotto:      {key:'txlotto',      name:'TX Lotto',       emoji:'🟢', color:'#66bb6a', mainCount:6,  mainMax:54, bonusCount:0, bonusMax:0,  bonusLabel:'',            hasPP:false, drawDays:['MO','WE','SA'], onlineOnly:true},
+  txlotto:      {key:'txlotto',      name:'TX Lotto',       emoji:'🟢', color:'#66bb6a', mainCount:6,  mainMax:54, bonusCount:0, bonusMax:0,  bonusLabel:'',            hasPP:false, drawDays:['MO','WE','SA']},
   allornothing: {key:'allornothing', name:'All or Nothing', emoji:'⚫',  color:'#8d6e63', mainCount:12, mainMax:24, bonusCount:0, bonusMax:0,  bonusLabel:'',            hasPP:false, drawDays:['MO','TU','WE','TH','FR','SA']},
 };
 
@@ -857,7 +846,7 @@ function startDrawSalesWatcher(){
   _drawSalesTimer=setInterval(function(){
     if(!S.game) return;
     var g=GAMES[S.game];
-    if(!g||g.onlineOnly) return;
+    if(!g) return;
     if(document.getElementById('secDate').style.display==='none') return;
     var prev=S.drawDate;
     buildDrawDays(g);
@@ -1146,9 +1135,8 @@ async function pickGame(key) {
   document.querySelectorAll('.game-big-card').forEach(function(c){
     c.classList.toggle('sel', c.dataset.gameKey === key);
   });
-  var hide=['secDate','secOnline','secMethod','secSets','secPP','secAllSets','secImgs','secInfo','secSubmit'];
+  var hide=['secDate','secMethod','secSets','secPP','secAllSets','secImgs','secInfo','secSubmit'];
   hide.forEach(function(id){ document.getElementById(id).style.display='none'; });
-  if (g.onlineOnly) { document.getElementById('secOnline').style.display='block'; return; }
   document.getElementById('secDate').style.display='block';
   document.getElementById('drawHint').textContent = g.drawDays.map(function(d){return DAY_MAP[d]||d;}).join(' / ');
   buildDrawDays(g);
@@ -1700,7 +1688,7 @@ function showConfirm(bookingData) {
   if (isSalesClosedForDraw(bookingData.drawDate)) {
     toast('เลยเวลาปิดขาย (06:30 น. ไทย / 18:30 น. Texas) สำหรับงวดนี้แล้ว — เลือกงวดถัดไป','err');
     var g0 = GAMES[bookingData.gameKey];
-    if (g0 && !g0.onlineOnly) buildDrawDays(g0);
+    if (g0) buildDrawDays(g0);
     var btn=document.getElementById('btnSub');
     if(btn){btn.disabled=false;btn.innerHTML='<span>✨</span> บันทึกรายการจอง';}
     return;
@@ -1735,7 +1723,7 @@ async function doPayment() {
     toast('เลยเวลาปิดขาย (06:30 น. ไทย / 18:30 น. Texas) สำหรับงวดนี้แล้ว — เลือกงวดถัดไป','err');
     closeConfirm();
     var g0 = GAMES[bookingData.gameKey];
-    if (g0 && !g0.onlineOnly) buildDrawDays(g0);
+    if (g0) buildDrawDays(g0);
     return;
   }
 
@@ -1811,7 +1799,7 @@ function resetForm(){
   stopDrawSalesWatcher();
   S.game=null;S.setsData=[{mainSel:[],bonusSel:[]}];S.powerPlay=false;S.sets=1;S.drawDate='';S.pendingBooking=null;S.selectedTicketId=null;
   document.querySelectorAll('.game-big-card').forEach(function(c){c.classList.remove('sel');});
-  ['secDate','secOnline','secMethod','secSets','secPP','secAllSets','secImgs','secInfo','secSubmit'].forEach(function(id){document.getElementById(id).style.display='none';});
+  ['secDate','secMethod','secSets','secPP','secAllSets','secImgs','secInfo','secSubmit'].forEach(function(id){document.getElementById(id).style.display='none';});
   document.getElementById('fName').value='';document.getElementById('fPhone').value='';document.getElementById('fNote').value='';
 }
 
