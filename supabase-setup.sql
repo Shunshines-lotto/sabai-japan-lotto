@@ -188,3 +188,19 @@ CREATE POLICY "anon_all_winners" ON public.winners FOR ALL TO anon USING (true) 
 CREATE POLICY "anon_all_admin2_income" ON public.admin2_income FOR ALL TO anon USING (true) WITH CHECK (true);
 
 DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE winners; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE lottery_results; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- ── LINE admin users (Messaging API push) ───────────────────────
+CREATE TABLE IF NOT EXISTS public.line_admin_users (
+  user_id        text PRIMARY KEY,
+  display_name   text,
+  picture_url    text,
+  is_active      boolean NOT NULL DEFAULT true,
+  notify_booking boolean NOT NULL DEFAULT true,
+  last_seen_at   timestamptz NOT NULL DEFAULT now(),
+  created_at     timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.line_admin_users ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.line_admin_users FROM anon, authenticated;
+GRANT ALL ON public.line_admin_users TO service_role;

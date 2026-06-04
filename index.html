@@ -320,6 +320,29 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   font-family:'Itim',cursive;font-size:18px;
   font-weight:700;color:var(--gc,var(--pink));
 }
+.jackpot-usd-badge{
+  display:inline-block;font-size:9px;font-weight:700;color:var(--text3);
+  letter-spacing:.4px;margin-left:4px;vertical-align:middle;
+}
+.jackpot-input-wrap{
+  display:flex;align-items:stretch;border:2px solid var(--pink3);
+  border-radius:var(--r2);overflow:hidden;background:var(--white);
+}
+.jackpot-input-wrap:focus-within{border-color:var(--pink)}
+.jackpot-input-prefix{
+  display:flex;align-items:center;padding:0 10px;
+  background:var(--cream);color:var(--text2);
+  font-family:'Mitr',sans-serif;font-size:13px;font-weight:600;
+  border-right:2px solid var(--pink3);
+}
+.jackpot-input-wrap input{
+  flex:1;border:none!important;background:transparent!important;
+  border-radius:0!important;text-align:left;
+}
+.jackpot-preview{
+  font-family:'Itim',cursive;font-size:15px;font-weight:700;
+  color:var(--peach);margin-top:6px;
+}
 .result-balls-row{
   display:flex;flex-wrap:wrap;gap:4px;align-items:center;
 }
@@ -767,14 +790,6 @@ var PINS = {1:'1567', 2:'2810'};
 var _pTarget=0, _pVal='';
 var DAY_MAP={MO:'Mon',TU:'Tue',WE:'Wed',TH:'Thu',FR:'Fri',SA:'Sat',SU:'Sun'};
 var DAY_MAP_TH={MO:'จันทร์',TU:'อังคาร',WE:'พุธ',TH:'พฤหัส',FR:'ศุกร์',SA:'เสาร์',SU:'อาทิตย์'};
-/** ข้อความแจ็กพอตบนการ์ดหน้าแรก (แสดงผลอย่างเดียว — แก้ตัวเลขได้ตามต้องการ) */
-var GAME_CARD_JACKPOT={
-  powerball:'$156 Million',
-  mega:'$250 Million',
-  txtwostep:'ตามประกาศงวด',
-  txlotto:'ตามประกาศงวด',
-  allornothing:'ตามประกาศงวด'
-};
 var GAME_DISPLAY_NAME={
   powerball:'Powerball',
   mega:'Mega Millions',
@@ -991,6 +1006,36 @@ function parseMainNumbers(raw) {
   return Array.isArray(nums) ? nums : [];
 }
 
+/** แสดงแจ็คพอตเป็นสกุลเงิน USD (ค่าในฐานข้อมูล = ดอลลาร์เต็ม เช่น 156000000) */
+function formatJackpotUsd(usd) {
+  var n = parseFloat(usd);
+  if (!n || isNaN(n) || n <= 0) return '';
+  if (n >= 1e9) {
+    var b = n / 1e9;
+    return '$' + (b % 1 === 0 ? b.toFixed(0) : b.toFixed(1)) + ' Billion USD';
+  }
+  if (n >= 1e6) {
+    var m = n / 1e6;
+    return '$' + (m % 1 === 0 ? m.toFixed(0) : m.toFixed(1)) + ' Million USD';
+  }
+  return '$' + Math.round(n).toLocaleString('en-US') + ' USD';
+}
+
+function parseJackpotUsdInput(val) {
+  var s = String(val || '').replace(/,/g, '').trim();
+  if (!s) return 0;
+  var n = parseFloat(s);
+  return isNaN(n) || n < 0 ? 0 : n;
+}
+
+function updateJackpotPreview() {
+  var inp = document.getElementById('manualJackpot');
+  var prev = document.getElementById('jackpotUsdPreview');
+  if (!inp || !prev) return;
+  var label = formatJackpotUsd(inp.value);
+  prev.textContent = label ? ('แสดงผล: ' + label) : 'แสดงผล: —';
+}
+
 async function buildGameCards() {
   var wrap = document.getElementById('gameCardsRow');
   if (!wrap) return;
@@ -1045,13 +1090,12 @@ async function buildGameCards() {
     html += '<div class="game-card-name">' + escAttr(displayName) + '</div>';
 
     html += '<div class="game-card-section">';
-    html += '<div class="game-card-section-label">🏆 แจ็คพอตประมูล</div>';
-    if (result && parseFloat(result.jackpot_usd) > 0) {
-      var jNum = parseFloat(result.jackpot_usd);
-      var jLabel = jNum >= 1000000 ? '$' + (jNum / 1000000).toFixed(0) + ' Million' : '$' + jNum.toLocaleString();
+    html += '<div class="game-card-section-label">🏆 แจ็คพอต <span class="jackpot-usd-badge">USD</span></div>';
+    var jLabel = result ? formatJackpotUsd(result.jackpot_usd) : '';
+    if (jLabel) {
       html += '<div class="jackpot-amount">' + escAttr(jLabel) + '</div>';
     } else {
-      html += '<div class="jackpot-amount" style="font-size:14px;color:var(--text3)">-</div>';
+      html += '<div class="jackpot-amount" style="font-size:14px;color:var(--text3)">—</div>';
     }
     html += '</div>';
 
@@ -1805,7 +1849,7 @@ function finishAdminLogin(role) {
   updateAdminHeader();
   startAdminClock();
   initListFilterUI();
-  switchTab('list');
+  switchTab(role === 2 ? 'result' : 'list');
   loadStats();
   toast('เข้าสู่ระบบแล้ว 🌸', 'ok');
 }
@@ -3303,11 +3347,14 @@ async function loadResultPanel() {
 
   html += '<div class="sbox">';
   html += '<div class="stitle">🏆 บันทึกผลรางวัล</div>';
+  if (!isA1) {
+    html += '<div style="font-size:11px;color:var(--text2);margin:-6px 0 10px;line-height:1.5">Admin 2 กรอกเลขผล + แจ็คพอต (USD) เองตามงวด — ไม่ดึงจาก API</div>';
+  }
   html += '<div class="form-row">';
   html += '<div class="fg"><label>งวดวันที่</label><input type="date" id="resultDate" class="price-inp" style="text-align:left;font-size:13px" onchange="loadExistingResults();onResultGameChange()"></div>';
   html += '<div class="fg"><label>เกม</label><select id="resultGame" class="price-inp" style="text-align:left;font-size:13px" onchange="onResultGameChange()">';
-  html += '<option value="powerball">🔴 Power Ball (API)</option>';
-  html += '<option value="mega">🟡 Mega Millions (API)</option>';
+  html += '<option value="powerball">🔴 Power Ball</option>';
+  html += '<option value="mega">🟡 Mega Millions</option>';
   html += '<option value="txtwostep">🔵 TX Two Step</option>';
   html += '<option value="txlotto">🟢 TX Lotto</option>';
   html += '<option value="allornothing">⚫ All or Nothing</option>';
@@ -3346,66 +3393,64 @@ async function onResultGameChange() {
     return;
   }
 
-  if (game === 'powerball' || game === 'mega') {
-    area.innerHTML = '<div style="text-align:center;padding:14px;color:var(--text2);font-size:13px">⏳ กำลังดึงผลจาก API...</div>';
-    try {
-      var apiUrl = game === 'powerball'
-        ? 'https://data.ny.gov/resource/d6yy-54nr.json?$order=draw_date%20DESC&$limit=1'
-        : 'https://data.ny.gov/resource/5xaw-6ayf.json?$order=draw_date%20DESC&$limit=1';
-      var res = await fetch(apiUrl);
-      var rows = await res.json();
-      if (rows && rows.length) {
-        var row = rows[0];
-        var mainStr = row.winning_numbers || row.winning_numbers_combined || '';
-        var main = mainStr.split(/\s+/).map(Number).filter(function(n) { return !isNaN(n); });
-        var bonus = parseInt(row.multiplier || row.mega_ball || row.powerball || row.bonus_ball || 0) || 0;
-        var jackpot = parseFloat(String(row.jackpot || row.estimated_jackpot || 0).replace(/,/g, '')) || 0;
-        if (main.length < 5 && row.winning_numbers) {
-          main = String(row.winning_numbers).split(/[\s,]+/).map(Number).filter(function(n) { return !isNaN(n); });
-        }
-        renderApiResult(game, date, { main: main, bonus: bonus, jackpot: jackpot });
-      } else {
-        area.innerHTML = '<div style="color:var(--peach);font-size:12px;padding:10px">ยังไม่มีผลของงวดนี้ กรุณากรอกเอง</div>' + renderManualInput(game);
-      }
-    } catch (e) {
-      area.innerHTML = '<div style="color:#ef4444;font-size:12px;padding:10px">ดึง API ไม่สำเร็จ กรุณากรอกเอง</div>' + renderManualInput(game);
-    }
-  } else {
-    area.innerHTML = renderManualInput(game);
-    loadExistingResults();
-  }
+  area.innerHTML = renderManualInput(game);
+  updateJackpotPreview();
+  await prefillManualFromDb(game, date);
+  loadExistingResults();
 }
 
-function renderApiResult(game, date, data) {
-  var area = document.getElementById('resultInputArea');
-  var html = '<div style="background:var(--cream);border-radius:var(--r2);padding:12px;border:2px solid var(--pink3)">';
-  html += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">📡 ผลจาก API</div>';
-  html += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">';
-  data.main.forEach(function(n) { html += '<div class="ball main" style="width:32px;height:32px;font-size:12px">' + (n < 10 ? '0' : '') + n + '</div>'; });
-  if (data.bonus) html += '<div style="color:var(--pink2);font-size:16px;margin:0 3px">+</div><div class="ball bonus" style="width:32px;height:32px;font-size:12px">' + (data.bonus < 10 ? '0' : '') + data.bonus + '</div>';
+async function prefillManualFromDb(game, date) {
+  var { data } = await sb.from('lottery_results').select('*').eq('id', game + '-' + date).maybeSingle();
+  if (!data) return;
+  var main = parseMainNumbers(data.main_numbers);
+  var mainEl = document.getElementById('manualMain');
+  if (mainEl && main.length) mainEl.value = main.join(',');
+  var bonusEl = document.getElementById('manualBonus');
+  if (bonusEl && data.bonus_number) bonusEl.value = String(data.bonus_number);
+  var jackpotEl = document.getElementById('manualJackpot');
+  if (jackpotEl && parseFloat(data.jackpot_usd) > 0) jackpotEl.value = String(parseFloat(data.jackpot_usd));
+  updateJackpotPreview();
+  renderSavedResultSummary(data, game);
+}
+
+function renderSavedResultSummary(data, game) {
+  var box = document.getElementById('savedResultSummary');
+  if (!box || !data) return;
+  var g = GAMES[game] || {};
+  var main = parseMainNumbers(data.main_numbers);
+  var j = formatJackpotUsd(data.jackpot_usd);
+  var html = '<div style="font-size:11px;color:var(--text2);margin-bottom:10px;padding:8px 10px;background:var(--white);border-radius:8px;border:1px dashed var(--pink3)">';
+  html += '📋 ผลที่บันทึกแล้วในงวดนี้ · ';
+  main.forEach(function(n, i) {
+    if (i) html += ', ';
+    html += n;
+  });
+  if (data.bonus_number && g.bonusCount) html += ' + ' + g.bonusLabel + ' ' + data.bonus_number;
+  html += '<br>แจ็คพอต: <span style="color:var(--peach);font-weight:600">' + escAttr(j || '—') + '</span>';
   html += '</div>';
-  html += '<div style="font-size:12px;color:var(--text2)">Jackpot: $' + data.jackpot + '</div>';
-  html += '<input type="hidden" id="apiMainNums" value="' + data.main.join(',') + '">';
-  html += '<input type="hidden" id="apiBonusNum" value="' + (data.bonus || 0) + '">';
-  html += '<input type="hidden" id="apiJackpot" value="' + data.jackpot + '">';
-  html += '<button onclick="saveAndCheckResult()" style="width:100%;margin-top:10px;padding:10px;background:linear-gradient(135deg,var(--pink),var(--lav));border:none;border-radius:var(--r3);color:#fff;font-family:Mitr,sans-serif;font-size:13px;font-weight:600;cursor:pointer">✅ บันทึกและตรวจรางวัล</button>';
-  html += '</div>';
-  area.innerHTML = html;
+  box.innerHTML = html;
 }
 
 function renderManualInput(game) {
   var g = GAMES[game];
-  var html = '<div style="background:var(--cream);border-radius:var(--r2);padding:12px;border:2px solid var(--pink3)">';
+  var html = '<div id="savedResultSummary"></div>';
+  html += '<div style="background:var(--cream);border-radius:var(--r2);padding:12px;border:2px solid var(--pink3)">';
   html += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">✏️ กรอกผลรางวัล</div>';
   html += '<div class="fg" style="margin-bottom:8px"><label>เลขหลัก (' + g.mainCount + ' ตัว) คั่นด้วยเครื่องหมาย ,</label>';
-  html += '<input type="text" id="manualMain" class="price-inp" style="text-align:left;font-size:13px" placeholder="1,2,3,4,5"></div>';
+  html += '<input type="text" id="manualMain" class="price-inp" style="text-align:left;font-size:13px" placeholder="12,22,27,45,58"></div>';
   if (g.bonusCount > 0) {
-    html += '<div class="fg" style="margin-bottom:8px"><label>' + g.bonusLabel + '</label>';
+    html += '<div class="fg" style="margin-bottom:8px"><label>' + escAttr(g.bonusLabel) + '</label>';
     html += '<input type="number" id="manualBonus" class="price-inp" style="font-size:13px" placeholder="1-' + g.bonusMax + '"></div>';
   }
-  html += '<div class="fg" style="margin-bottom:8px"><label>Jackpot (USD) ถ้ามี</label>';
-  html += '<input type="number" id="manualJackpot" class="price-inp" style="font-size:13px" placeholder="0"></div>';
-  html += '<button onclick="saveManualResult()" style="width:100%;margin-top:8px;padding:10px;background:linear-gradient(135deg,var(--pink),var(--lav));border:none;border-radius:var(--r3);color:#fff;font-family:Mitr,sans-serif;font-size:13px;font-weight:600;cursor:pointer">✅ บันทึกและตรวจรางวัล</button>';
+  html += '<div class="fg" style="margin-bottom:4px"><label>แจ็คพอต (USD) <span style="font-weight:400;color:var(--text3)">· กรอกยอดเต็มเป็นดอลลาร์</span></label>';
+  html += '<div class="jackpot-input-wrap">';
+  html += '<span class="jackpot-input-prefix">$</span>';
+  html += '<input type="text" inputmode="decimal" id="manualJackpot" class="price-inp" placeholder="156000000" oninput="updateJackpotPreview()">';
+  html += '</div>';
+  html += '<div class="jackpot-preview" id="jackpotUsdPreview">แสดงผล: —</div>';
+  html += '<div style="font-size:10px;color:var(--text3);margin-top:4px">ตัวอย่าง 156 ล้านดอลลาร์ → ใส่ 156000000 จะแสดงเป็น $156 Million USD</div>';
+  html += '</div>';
+  html += '<button type="button" onclick="saveManualResult()" style="width:100%;margin-top:10px;padding:10px;background:linear-gradient(135deg,var(--pink),var(--lav));border:none;border-radius:var(--r3);color:#fff;font-family:Mitr,sans-serif;font-size:13px;font-weight:600;cursor:pointer">✅ บันทึกและตรวจรางวัล</button>';
   html += '</div>';
   return html;
 }
@@ -3419,17 +3464,17 @@ async function saveManualResult() {
   if (!date || !mainInput) return;
   var main = mainInput.value.split(',').map(function(n) { return parseInt(n.trim(), 10); }).filter(function(n) { return !isNaN(n); });
   var bonus = bonusInput ? parseInt(bonusInput.value, 10) || 0 : 0;
-  var jackpot = jackpotInput ? parseFloat(jackpotInput.value) || 0 : 0;
+  var jackpot = jackpotInput ? parseJackpotUsdInput(jackpotInput.value) : 0;
+  var g = GAMES[game];
+  if (g && g.mainCount && main.length !== g.mainCount) {
+    toast('เลขหลักต้องครบ ' + g.mainCount + ' ตัว', 'err');
+    return;
+  }
+  if (['powerball', 'mega'].indexOf(game) > -1 && jackpot <= 0) {
+    toast('กรอกแจ็คพอต (USD) สำหรับ ' + (GAME_DISPLAY_NAME[game] || game), 'err');
+    return;
+  }
   await saveResult(game, date, main, bonus, jackpot, 'manual');
-}
-
-async function saveAndCheckResult() {
-  var game = document.getElementById('resultGame').value;
-  var date = document.getElementById('resultDate').value;
-  var main = document.getElementById('apiMainNums').value.split(',').map(Number);
-  var bonus = parseInt(document.getElementById('apiBonusNum').value, 10) || 0;
-  var jackpot = parseFloat(document.getElementById('apiJackpot').value) || 0;
-  await saveResult(game, date, main, bonus, jackpot, 'api');
 }
 
 async function saveResult(game, date, main, bonus, jackpot, source) {
@@ -3445,8 +3490,17 @@ async function saveResult(game, date, main, bonus, jackpot, source) {
     source: source || 'manual'
   });
   if (error) { toast('บันทึกผลไม่สำเร็จ: ' + dbErrMsg(error), 'err'); return; }
-  toast('บันทึกผลแล้ว ⏳ กำลังตรวจรางวัล...', 'ok');
+  var jMsg = formatJackpotUsd(jackpot);
+  toast('บันทึกผลแล้ว' + (jMsg ? ' · แจ็คพอต ' + jMsg : '') + ' ⏳ กำลังตรวจรางวัล...', 'ok');
   buildGameCards();
+  if (document.getElementById('manualJackpot')) {
+    updateJackpotPreview();
+    renderSavedResultSummary({
+      main_numbers: main,
+      bonus_number: bonus,
+      jackpot_usd: jackpot
+    }, game);
+  }
   await checkAllWinners(game, date, main, bonus, jackpot);
   await loadWinnerList(date);
   await loadIncomeArea(date);
