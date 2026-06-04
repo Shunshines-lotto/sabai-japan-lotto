@@ -3408,11 +3408,11 @@ async function onResultGameChange() {
 async function prefillManualFromDb(game, date) {
   var { data } = await sb.from('lottery_results').select('*').eq('id', game + '-' + date).maybeSingle();
   if (!data) return;
-  var main = parseMainNumbers(data.main_numbers);
+  var dr = getDisplayResultNumbers(game, data);
   var mainEl = document.getElementById('manualMain');
-  if (mainEl && main.length) mainEl.value = main.join(',');
+  if (mainEl && dr.main.length) mainEl.value = dr.main.join(',');
   var bonusEl = document.getElementById('manualBonus');
-  if (bonusEl && data.bonus_number) bonusEl.value = String(data.bonus_number);
+  if (bonusEl && dr.bonus) bonusEl.value = String(dr.bonus);
   var jackpotEl = document.getElementById('manualJackpot');
   if (jackpotEl && parseFloat(data.jackpot_usd) > 0) jackpotEl.value = String(parseFloat(data.jackpot_usd));
   updateJackpotPreview();
